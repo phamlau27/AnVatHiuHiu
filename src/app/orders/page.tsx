@@ -138,7 +138,7 @@ export default function OrdersPage() {
                     </span>
                   </div>
                   
-                  {order.status === "new" && (
+                  {(order.status === "new" || order.status === "processing") && (
                     <div className="flex justify-end pt-1">
                       <button
                         onClick={async () => {

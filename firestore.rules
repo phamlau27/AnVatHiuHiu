@@ -27,11 +27,11 @@ service cloud.firestore {
       // Only admin can list all orders or delete
       allow list, delete: if request.auth != null;
 
-      // Admin can update anything. Anonymous can ONLY cancel a "new" order.
+      // Admin can update anything. Anonymous can ONLY cancel a "new" or "processing" order.
       allow update: if request.auth != null || 
         (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
-          resource.data.status == 'new' &&
+          (resource.data.status == 'new' || resource.data.status == 'processing') &&
           request.resource.data.status == 'cancelled'
         );
     }
