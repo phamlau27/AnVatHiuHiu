@@ -34,7 +34,9 @@ export default function AdminDashboard() {
     const today = new Date();
     return orderDate.toDateString() === today.toDateString();
   });
-  const todayRevenue = todayOrders.reduce((sum, o) => sum + o.totalPrice, 0);
+  const todayRevenue = todayOrders
+    .filter((o) => o.status === "completed" || o.status === "archived")
+    .reduce((sum, o) => sum + o.totalPrice, 0);
 
   if (loading) {
     return (
