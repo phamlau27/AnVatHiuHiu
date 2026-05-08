@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useUIStore } from "@/stores/uiStore";
 import { useCartStore } from "@/stores/cartStore";
 import { useOrderHistoryStore } from "@/stores/orderHistoryStore";
@@ -12,6 +13,30 @@ export default function Header() {
   const openCart = useUIStore((s) => s.openCart);
   const totalItems = useCartStore((s) => s.getTotalItems());
   const orderIds = useOrderHistoryStore((s) => s.orderIds);
+  const [activeOrderCount, setActiveOrderCount] = useState(0);
+
+  useEffect(() => {
+    if (!mounted || orderIds.length === 0) {
+      setActiveOrderCount(0);
+      return;
+    }
+    let isSubscribed = true;
+    async function checkOrders() {
+      try {
+        const { getOrdersByIds } = await import("@/lib/firestore");
+        const orders = await getOrdersByIds(orderIds);
+        if (isSubscribed) {
+          setActiveOrderCount(orders.filter(o => o.status === "new" || o.status === "processing").length);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    checkOrders();
+    return () => {
+      isSubscribed = false;
+    };
+  }, [mounted, orderIds]);
 
   return (
     <header className="sticky top-0 z-50 glass border-b border-border/50">
@@ -66,14 +91,14 @@ export default function Header() {
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            {mounted && orderIds.length > 0 && (
+            {mounted && activeOrderCount > 0 && (
               <motion.span
-                key={orderIds.length}
+                key={activeOrderCount}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 className="absolute -top-0.5 -right-0.5 bg-mint text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full"
               >
-                {orderIds.length > 99 ? "99+" : orderIds.length}
+                {activeOrderCount > 99 ? "99+" : activeOrderCount}
               </motion.span>
             )}
           </Link>
