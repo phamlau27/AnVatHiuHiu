@@ -192,3 +192,7 @@ export async function archiveOrder(id: string): Promise<void> {
 export async function unarchiveOrder(id: string): Promise<void> {
   await updateDoc(doc(db, "orders", id), { status: "new" });
 }
+
+export async function deleteOrder(id: string): Promise<void> {
+  await deleteDoc(doc(db, "orders", id));
+}

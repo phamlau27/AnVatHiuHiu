@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAllOrders, archiveOrder, unarchiveOrder } from "@/lib/firestore";
+import { getAllOrders, archiveOrder, unarchiveOrder, deleteOrder } from "@/lib/firestore";
 import { formatPrice } from "@/data/mockProducts";
 import { showToast } from "@/components/ui/Toast";
 import type { Order } from "@/types";
@@ -64,6 +64,18 @@ export default function AdminOrdersPage() {
       showToast("Đã chuyển về Mới!", "success");
     } catch {
       showToast("Có lỗi xảy ra", "error");
+    }
+  }
+
+  async function handleDelete(orderId: string) {
+    if (!confirm("Bạn có chắc chắn muốn XÓA vĩnh viễn đơn hàng này không?")) return;
+    try {
+      await deleteOrder(orderId);
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      if (selectedOrder?.id === orderId) setSelectedOrder(null);
+      showToast("Đã xóa đơn hàng!", "success");
+    } catch {
+      showToast("Có lỗi xảy ra khi xóa", "error");
     }
   }
 
@@ -153,27 +165,38 @@ export default function AdminOrdersPage() {
                       {formatDate(order.createdAt)}
                     </td>
                     <td className="px-5 py-3 text-center">
-                      {order.status === "new" ? (
+                      <div className="flex items-center justify-center gap-2">
+                        {order.status === "new" ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleArchive(order.id);
+                            }}
+                            className="px-3 py-1.5 bg-mint/15 text-mint-dark rounded-lg text-xs font-medium hover:bg-mint/25 transition-colors"
+                          >
+                            ✅ Xử lý
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUnarchive(order.id);
+                            }}
+                            className="px-3 py-1.5 bg-gray-100 text-text-secondary rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
+                          >
+                            ↩ Hoàn tác
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleArchive(order.id);
+                            handleDelete(order.id);
                           }}
-                          className="px-3 py-1.5 bg-mint/15 text-mint-dark rounded-lg text-xs font-medium hover:bg-mint/25 transition-colors"
+                          className="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors"
                         >
-                          ✅ Xử lý
+                          🗑️ Xóa
                         </button>
-                      ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleUnarchive(order.id);
-                          }}
-                          className="px-3 py-1.5 bg-gray-100 text-text-secondary rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
-                        >
-                          ↩ Hoàn tác
-                        </button>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -200,19 +223,30 @@ export default function AdminOrdersPage() {
                     {order.phone} • {order.items.length} món •{" "}
                     {order.type === "delivery" ? "🚚" : "🏪"}
                   </span>
-                  {order.status === "new" ? (
+                  <div className="flex gap-2">
+                    {order.status === "new" ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleArchive(order.id);
+                        }}
+                        className="px-2.5 py-1 bg-mint/15 text-mint-dark rounded-lg font-medium"
+                      >
+                        ✅ Xử lý
+                      </button>
+                    ) : (
+                      <span className="text-green-600">✅ Đã xong</span>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleArchive(order.id);
+                        handleDelete(order.id);
                       }}
-                      className="px-2.5 py-1 bg-mint/15 text-mint-dark rounded-lg font-medium"
+                      className="px-2.5 py-1 bg-red-50 text-red-500 rounded-lg font-medium"
                     >
-                      ✅ Xử lý
+                      🗑️
                     </button>
-                  ) : (
-                    <span className="text-green-600">✅</span>
-                  )}
+                  </div>
                 </div>
               </div>
             ))}
