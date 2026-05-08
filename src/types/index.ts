@@ -5,7 +5,7 @@ export interface Product {
   id: string;
   name: string;
   price: number;
-  promotionPrice?: number;
+  promoPrice?: number;
   imageUrl: string;
   category: string;
   isPromotion: boolean;

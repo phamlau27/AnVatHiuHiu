@@ -72,10 +72,23 @@ export async function getProducts(filters?: {
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
-  const docRef = doc(db, "products", id);
-  const docSnap = await getDoc(docRef);
-  if (!docSnap.exists()) return null;
-  return { id: docSnap.id, ...docSnap.data() } as Product;
+  try {
+    const docRef = doc(db, "products", id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Product;
+    }
+  } catch (err) {
+    console.warn("getProductById from Firebase failed, falling back to mock:", err);
+  }
+
+  // Fallback to mock data
+  const { mockProducts } = await import("@/data/mockProducts");
+  const mockProduct = mockProducts.find(p => p.id === id);
+  if (mockProduct) {
+    return { ...mockProduct, createdAt: Timestamp.now() } as Product;
+  }
+  return null;
 }
 
 export async function getProductsByIds(ids: string[]): Promise<Product[]> {
