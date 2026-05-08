@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAllOrders, updateOrderStatus } from "@/lib/firestore";
+import { getAllOrders, updateOrderStatus, deleteOrder } from "@/lib/firestore";
 import { formatPrice } from "@/data/mockProducts";
 import { showToast } from "@/components/ui/Toast";
 import type { Order } from "@/types";
@@ -50,6 +50,18 @@ export default function AdminOrdersPage() {
         prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
       );
       showToast("Đã cập nhật trạng thái!", "success");
+    } catch {
+      showToast("Có lỗi xảy ra", "error");
+    }
+  }
+
+  async function handleDelete(orderId: string) {
+    if (!confirm("Bạn có chắc chắn muốn xóa (ẩn) đơn hàng này khỏi danh sách quản lý không?")) return;
+    try {
+      await deleteOrder(orderId);
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      if (selectedOrder?.id === orderId) setSelectedOrder(null);
+      showToast("Đã ẩn đơn hàng!", "success");
     } catch {
       showToast("Có lỗi xảy ra", "error");
     }
@@ -121,6 +133,7 @@ export default function AdminOrdersPage() {
                   <th className="text-right px-5 py-3 font-medium">Tổng</th>
                   <th className="text-left px-5 py-3 font-medium">Thời gian</th>
                   <th className="text-center px-5 py-3 font-medium">Trạng thái</th>
+                  <th className="text-center px-5 py-3 font-medium">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
@@ -162,6 +175,17 @@ export default function AdminOrdersPage() {
                         <option value="cancelled">❌ Đã hủy</option>
                       </select>
                     </td>
+                    <td className="px-5 py-3 text-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(order.id);
+                        }}
+                        className="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors"
+                      >
+                        🗑️ Xóa
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -187,22 +211,33 @@ export default function AdminOrdersPage() {
                     {order.phone} • {order.items.length} món •{" "}
                     {order.type === "delivery" ? "🚚" : "🏪"}
                   </span>
-                  <select
-                    onClick={(e) => e.stopPropagation()}
-                    value={order.status === "archived" ? "completed" : order.status}
-                    onChange={(e) => handleStatusChange(order.id, e.target.value as Order["status"])}
-                    className={`text-xs font-bold px-2 py-1 rounded-md border-0 outline-none
-                      ${order.status === "new" ? "bg-yellow-100 text-yellow-700" : ""}
-                      ${order.status === "processing" ? "bg-blue-100 text-blue-700" : ""}
-                      ${order.status === "completed" || order.status === "archived" ? "bg-green-100 text-green-700" : ""}
-                      ${order.status === "cancelled" ? "bg-red-100 text-red-700" : ""}
-                    `}
-                  >
-                    <option value="new">🟡 Mới</option>
-                    <option value="processing">🔵 Đang xử lý</option>
-                    <option value="completed">✅ Đã xong</option>
-                    <option value="cancelled">❌ Đã hủy</option>
-                  </select>
+                  <div className="flex gap-2">
+                    <select
+                      onClick={(e) => e.stopPropagation()}
+                      value={order.status === "archived" ? "completed" : order.status}
+                      onChange={(e) => handleStatusChange(order.id, e.target.value as Order["status"])}
+                      className={`text-xs font-bold px-2 py-1 rounded-md border-0 outline-none
+                        ${order.status === "new" ? "bg-yellow-100 text-yellow-700" : ""}
+                        ${order.status === "processing" ? "bg-blue-100 text-blue-700" : ""}
+                        ${order.status === "completed" || order.status === "archived" ? "bg-green-100 text-green-700" : ""}
+                        ${order.status === "cancelled" ? "bg-red-100 text-red-700" : ""}
+                      `}
+                    >
+                      <option value="new">🟡 Mới</option>
+                      <option value="processing">🔵 Đang</option>
+                      <option value="completed">✅ Xong</option>
+                      <option value="cancelled">❌ Hủy</option>
+                    </select>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(order.id);
+                      }}
+                      className="px-2.5 py-1 bg-red-50 text-red-500 rounded-md font-medium"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

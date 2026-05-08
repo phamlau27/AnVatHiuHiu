@@ -173,9 +173,9 @@ export async function deleteProduct(id: string): Promise<void> {
 export async function getAllOrders(): Promise<Order[]> {
   const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(
-    (doc) => ({ id: doc.id, ...doc.data() } as Order)
-  );
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() } as Order))
+    .filter((order) => !order.adminDeleted);
 }
 
 export async function updateOrderStatus(id: string, status: Order["status"]): Promise<void> {
@@ -191,5 +191,6 @@ export async function unarchiveOrder(id: string): Promise<void> {
 }
 
 export async function deleteOrder(id: string): Promise<void> {
-  await deleteDoc(doc(db, "orders", id));
+  // Soft delete: hide from admin, but keep in database so users can still see it
+  await updateDoc(doc(db, "orders", id), { adminDeleted: true });
 }
