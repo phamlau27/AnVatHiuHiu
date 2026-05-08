@@ -75,7 +75,7 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
             const reader = new FileReader();
             reader.readAsDataURL(imageFile);
             reader.onload = (event) => {
-              const img = new Image();
+              const img = new window.Image();
               img.src = event.target?.result as string;
               img.onload = () => {
                 const canvas = document.createElement("canvas");
