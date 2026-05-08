@@ -1,28 +1,45 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import ProductGrid from "@/components/product/ProductGrid";
 import CategoryBar from "@/components/product/CategoryBar";
+import { getProducts } from "@/lib/firestore";
 import { mockProducts } from "@/data/mockProducts";
 import { CATEGORIES } from "@/types";
 import type { Product } from "@/types";
 import { Timestamp } from "firebase/firestore";
 import Link from "next/link";
 
-// Convert mock data to full Product type
-const allProducts: Product[] = mockProducts.map((p) => ({
-  ...p,
-  createdAt: Timestamp.now(),
-}));
-
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string | undefined>();
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const data = await getProducts();
+        if (data.length === 0) {
+          // Fallback to mock data if empty
+          setAllProducts(mockProducts.map((p) => ({ ...p, createdAt: Timestamp.now() })));
+        } else {
+          setAllProducts(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+        setAllProducts(mockProducts.map((p) => ({ ...p, createdAt: Timestamp.now() })));
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProducts();
+  }, []);
 
   const filteredProducts = useMemo(() => {
     if (!activeCategory) return allProducts;
     return allProducts.filter((p) => p.category === activeCategory);
-  }, [activeCategory]);
+  }, [activeCategory, allProducts]);
 
 
   return (
