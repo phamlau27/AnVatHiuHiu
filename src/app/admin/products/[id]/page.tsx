@@ -23,6 +23,7 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(!isNew);
+  const [imageError, setImageError] = useState("");
 
   useEffect(() => {
     if (!isNew) {
@@ -30,8 +31,10 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
         if (product) {
           setName(product.name);
           setPrice(product.price.toString());
+          setPromoPrice(product.promoPrice?.toString() || "");
           setCategory(product.category);
           setDescription(product.description || "");
+          setIsPromotion(product.isPromotion || false);
           setImageUrl(product.imageUrl);
         }
         setFetching(false);
@@ -51,37 +54,51 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
     e.preventDefault();
     if (!name || !price || !category) return;
     setLoading(true);
+    setImageError("");
 
     try {
       let finalImageUrl = imageUrl;
+
+      // Try to upload image, fall back to placeholder if Storage not enabled
       if (imageFile) {
-        finalImageUrl = await uploadProductImage(imageFile);
+        try {
+          finalImageUrl = await uploadProductImage(imageFile);
+        } catch (uploadErr) {
+          console.warn("Image upload failed, using placeholder:", uploadErr);
+          setImageError("⚠️ Không thể tải ảnh lên (Firebase Storage chưa bật). Dùng ảnh mặc định.");
+          finalImageUrl = `https://placehold.co/400x400/A8E6CF/2D6A4F?text=${encodeURIComponent(name)}`;
+        }
       }
+
       if (!finalImageUrl) {
-        finalImageUrl = `https://placehold.co/400x400/A8E6CF/333?text=${encodeURIComponent(name)}`;
+        finalImageUrl = `https://placehold.co/400x400/A8E6CF/2D6A4F?text=${encodeURIComponent(name)}`;
       }
 
       const data = {
         name,
         price: Number(price),
+        promoPrice: promoPrice ? Number(promoPrice) : undefined,
         category,
         description,
-        isPromotion: false,
+        isPromotion,
         imageUrl: finalImageUrl,
-        soldCount: 0,
+        soldCount: isNew ? 0 : undefined,
       };
 
+      // Remove undefined fields
+      Object.keys(data).forEach(key => data[key as keyof typeof data] === undefined && delete data[key as keyof typeof data]);
+
       if (isNew) {
-        await createProduct(data);
-        showToast("Đã tạo sản phẩm!", "success");
+        await createProduct(data as Parameters<typeof createProduct>[0]);
+        showToast("✅ Đã tạo sản phẩm!", "success");
       } else {
         await updateProduct(id, data);
-        showToast("Đã cập nhật!", "success");
+        showToast("✅ Đã cập nhật!", "success");
       }
       router.push("/admin/products");
     } catch (err) {
       console.error(err);
-      showToast("Có lỗi xảy ra!", "error");
+      showToast("❌ Có lỗi xảy ra! Kiểm tra console.", "error");
     } finally {
       setLoading(false);
     }
@@ -99,9 +116,17 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium mb-1.5 block">Giá (VND) *</label>
-            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint/50" />
+            <label className="text-sm font-medium mb-1.5 block">Giá gốc (VND) *</label>
+            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required placeholder="85000" className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint/50" />
           </div>
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Giá khuyến mãi</label>
+            <input type="number" value={promoPrice} onChange={(e) => setPromoPrice(e.target.value)} placeholder="Để trống nếu không có" className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint/50" />
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <input type="checkbox" id="isPromotion" checked={isPromotion} onChange={(e) => setIsPromotion(e.target.checked)} className="w-4 h-4 accent-mint" />
+          <label htmlFor="isPromotion" className="text-sm font-medium cursor-pointer">Đánh dấu là sản phẩm khuyến mãi 🏷️</label>
         </div>
         <div>
           <label className="text-sm font-medium mb-1.5 block">Danh mục *</label>
@@ -117,6 +142,8 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
         <div>
           <label className="text-sm font-medium mb-1.5 block">Hình ảnh</label>
           <input type="file" accept="image/*" onChange={handleImageChange} className="text-sm" />
+          {imageError && <p className="text-xs text-amber-600 mt-1">{imageError}</p>}
+          <p className="text-xs text-text-secondary mt-1">Nếu không chọn ảnh, hệ thống sẽ tự tạo ảnh placeholder.</p>
           {imageUrl && (
             <div className="mt-3 w-32 h-32 rounded-xl overflow-hidden bg-surface relative">
               <Image src={imageUrl} alt="Preview" fill className="object-cover" sizes="128px" />

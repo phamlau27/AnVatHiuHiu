@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import ProductGrid from "@/components/product/ProductGrid";
 import CategoryBar from "@/components/product/CategoryBar";
+import { ProductCardSkeleton } from "@/components/ui/Skeleton";
 import { getProducts } from "@/lib/firestore";
 import { mockProducts } from "@/data/mockProducts";
 import { CATEGORIES } from "@/types";
@@ -21,7 +22,6 @@ export default function HomePage() {
       try {
         const data = await getProducts();
         if (data.length === 0) {
-          // Fallback to mock data if empty
           setAllProducts(mockProducts.map((p) => ({ ...p, createdAt: Timestamp.now() })));
         } else {
           setAllProducts(data);
@@ -40,6 +40,7 @@ export default function HomePage() {
     if (!activeCategory) return allProducts;
     return allProducts.filter((p) => p.category === activeCategory);
   }, [activeCategory, allProducts]);
+
 
 
   return (
@@ -97,8 +98,17 @@ export default function HomePage() {
             {activeCategory
               ? CATEGORIES.find((c) => c.slug === activeCategory)?.name || "Sản phẩm"
               : "🛒 Tất cả sản phẩm"}
+            {!loading && <span className="text-sm font-normal text-text-secondary ml-2">({filteredProducts.length})</span>}
           </h3>
-          <ProductGrid products={filteredProducts} />
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : (
+            <ProductGrid products={filteredProducts} />
+          )}
         </section>
       </div>
     </div>
