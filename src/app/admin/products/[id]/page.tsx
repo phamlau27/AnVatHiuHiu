@@ -1,0 +1,137 @@
+"use client";
+
+import { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { getProductById, createProduct, updateProduct } from "@/lib/firestore";
+import { uploadProductImage } from "@/lib/storage";
+import { showToast } from "@/components/ui/Toast";
+import { CATEGORIES } from "@/types";
+
+export default function ProductEditPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const router = useRouter();
+  const isNew = id === "new";
+
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [promoPrice, setPromoPrice] = useState("");
+  const [category, setCategory] = useState<string>(CATEGORIES[0].slug);
+  const [description, setDescription] = useState("");
+  const [isPromotion, setIsPromotion] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(!isNew);
+
+  useEffect(() => {
+    if (!isNew) {
+      getProductById(id).then((product) => {
+        if (product) {
+          setName(product.name);
+          setPrice(product.price.toString());
+          setCategory(product.category);
+          setDescription(product.description || "");
+          setImageUrl(product.imageUrl);
+        }
+        setFetching(false);
+      }).catch(() => setFetching(false));
+    }
+  }, [id, isNew]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setImageUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !price || !category) return;
+    setLoading(true);
+
+    try {
+      let finalImageUrl = imageUrl;
+      if (imageFile) {
+        finalImageUrl = await uploadProductImage(imageFile);
+      }
+      if (!finalImageUrl) {
+        finalImageUrl = `https://placehold.co/400x400/A8E6CF/333?text=${encodeURIComponent(name)}`;
+      }
+
+      const data = {
+        name,
+        price: Number(price),
+        category,
+        description,
+        isPromotion: false,
+        imageUrl: finalImageUrl,
+        soldCount: 0,
+      };
+
+      if (isNew) {
+        await createProduct(data);
+        showToast("Đã tạo sản phẩm!", "success");
+      } else {
+        await updateProduct(id, data);
+        showToast("Đã cập nhật!", "success");
+      }
+      router.push("/admin/products");
+    } catch (err) {
+      console.error(err);
+      showToast("Có lỗi xảy ra!", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (fetching) return <div className="flex justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-mint border-t-transparent rounded-full" /></div>;
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">{isNew ? "➕ Thêm sản phẩm" : "✏️ Sửa sản phẩm"}</h1>
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Tên sản phẩm *</label>
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint/50" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Giá (VND) *</label>
+            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint/50" />
+          </div>
+        </div>
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Danh mục *</label>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint/50">
+            {CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.icon} {c.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Mô tả</label>
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint/50 resize-none" />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Hình ảnh</label>
+          <input type="file" accept="image/*" onChange={handleImageChange} className="text-sm" />
+          {imageUrl && (
+            <div className="mt-3 w-32 h-32 rounded-xl overflow-hidden bg-surface relative">
+              <Image src={imageUrl} alt="Preview" fill className="object-cover" sizes="128px" />
+            </div>
+          )}
+        </div>
+        <div className="flex gap-3 pt-2">
+          <button type="submit" disabled={loading} className="flex-1 py-3 bg-mint hover:bg-mint-dark disabled:bg-gray-300 text-white font-bold rounded-xl">
+            {loading ? "Đang lưu..." : isNew ? "Tạo sản phẩm" : "Lưu thay đổi"}
+          </button>
+          <button type="button" onClick={() => router.back()} className="px-6 py-3 bg-surface text-text-secondary rounded-xl hover:bg-border">
+            Hủy
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

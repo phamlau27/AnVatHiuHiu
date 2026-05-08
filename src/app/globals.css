@@ -1,26 +1,121 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* ─── Custom Theme ────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-mint-50: #f0fdf7;
+  --color-mint-100: #dcfce9;
+  --color-mint-200: #bbf7d4;
+  --color-mint-300: #86efb0;
+  --color-mint-400: #4ade80;
+  --color-mint-500: #22c55e;
+  --color-mint-600: #16a34a;
+  --color-mint: #A8E6CF;
+  --color-mint-light: #DCEDC1;
+  --color-mint-dark: #7BC4A8;
+  --color-accent: #FF6B6B;
+  --color-accent-light: #FFE0E0;
+  --color-sale: #FF4757;
+  --color-hot: #FF6348;
+  --color-background: #FFFFFF;
+  --color-surface: #F8FAF9;
+  --color-text-primary: #1A1A2E;
+  --color-text-secondary: #6B7280;
+  --color-border: #E5E7EB;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Base ────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  overflow-x: hidden;
+}
+
+/* ─── Scrollbar ───────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-mint-dark);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-mint-600);
+}
+
+/* ─── Utilities ───────────────────────────────────── */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Gradient Text ───────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-mint-dark), var(--color-mint-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Glass Effect ────────────────────────────────── */
+.glass {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* ─── Safe bottom padding for mobile ──────────────── */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+/* ─── Animation Keyframes ─────────────────────────── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
