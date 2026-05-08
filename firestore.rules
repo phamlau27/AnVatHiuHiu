@@ -24,8 +24,16 @@ service cloud.firestore {
       // Allow reading individual orders (for order history by ID)
       allow get: if true;
 
-      // Only admin can list all orders or update
-      allow list, update, delete: if request.auth != null;
+      // Only admin can list all orders or delete
+      allow list, delete: if request.auth != null;
+
+      // Admin can update anything. Anonymous can ONLY cancel a "new" order.
+      allow update: if request.auth != null || 
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+          resource.data.status == 'new' &&
+          request.resource.data.status == 'cancelled'
+        );
     }
   }
 }

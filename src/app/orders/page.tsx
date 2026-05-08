@@ -126,15 +126,39 @@ export default function OrdersPage() {
                 </div>
 
                 {/* Order Footer */}
-                <div className="px-4 py-3 border-t border-border/50 flex items-center justify-between">
-                  <div className="text-xs text-text-secondary">
-                    <span>{order.type === "delivery" ? "🚚 Giao hàng" : "🏪 Tự đến lấy"}</span>
-                    <span className="mx-1.5">•</span>
-                    <span>{formatDate(order.createdAt)}</span>
+                <div className="px-4 py-3 border-t border-border/50 flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-text-secondary">
+                      <span>{order.type === "delivery" ? "🚚 Giao hàng" : "🏪 Tự đến lấy"}</span>
+                      <span className="mx-1.5">•</span>
+                      <span>{formatDate(order.createdAt)}</span>
+                    </div>
+                    <span className="font-bold text-mint-dark">
+                      {formatPrice(order.totalPrice)}
+                    </span>
                   </div>
-                  <span className="font-bold text-mint-dark">
-                    {formatPrice(order.totalPrice)}
-                  </span>
+                  
+                  {order.status === "new" && (
+                    <div className="flex justify-end pt-1">
+                      <button
+                        onClick={async () => {
+                          if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
+                          try {
+                            const { updateOrderStatus } = await import("@/lib/firestore");
+                            await updateOrderStatus(order.id, "cancelled");
+                            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: "cancelled" } : o));
+                            alert("Đã hủy đơn hàng thành công!");
+                          } catch (err) {
+                            console.error(err);
+                            alert("Lỗi: Không thể hủy đơn hàng lúc này.");
+                          }
+                        }}
+                        className="px-4 py-1.5 bg-red-50 text-red-500 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors"
+                      >
+                        Hủy đơn hàng
+                      </button>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
