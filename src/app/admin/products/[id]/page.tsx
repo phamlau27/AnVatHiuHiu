@@ -147,12 +147,41 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
 
         <div>
           <label className="text-sm font-medium mb-1.5 block">Hình ảnh</label>
-          <input type="file" accept="image/*" onChange={handleImageChange} className="text-sm" />
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-text-secondary mb-1">Cách 1: Dán đường link ảnh từ trên mạng (Google, Facebook, Imgur...)</p>
+              <input 
+                type="url" 
+                value={imageUrl} 
+                onChange={(e) => setImageUrl(e.target.value)} 
+                placeholder="https://..." 
+                className="w-full px-4 py-2 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint/50" 
+              />
+            </div>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                <div className="w-full border-t border-border"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-white px-2 text-xs text-text-secondary">HOẶC</span>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs text-text-secondary mb-1">Cách 2: Tải ảnh từ máy lên (Yêu cầu bật Firebase Storage)</p>
+              <input type="file" accept="image/*" onChange={handleImageChange} className="text-sm w-full" />
+            </div>
+          </div>
+          
           {imageError && <p className="text-xs text-amber-600 mt-1">{imageError}</p>}
-          <p className="text-xs text-text-secondary mt-1">Nếu không chọn ảnh, hệ thống sẽ tự tạo ảnh placeholder.</p>
+          <p className="text-xs text-text-secondary mt-2">Nếu bỏ trống cả hai, hệ thống sẽ tự tạo ảnh mặc định.</p>
+          
           {imageUrl && (
-            <div className="mt-3 w-32 h-32 rounded-xl overflow-hidden bg-surface relative">
-              <Image src={imageUrl} alt="Preview" fill className="object-cover" sizes="128px" />
+            <div className="mt-4 w-32 h-32 rounded-xl overflow-hidden bg-surface relative border border-border">
+              {/* Using standard img tag instead of Next.js Image for external unconfigured domains */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imageUrl} alt="Preview" className="object-cover w-full h-full" />
             </div>
           )}
         </div>
