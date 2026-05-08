@@ -56,16 +56,23 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
     setLoading(true);
     setImageError("");
 
+    const withTimeout = <T,>(promise: Promise<T>, ms = 10000, errorMsg = "Request timeout"): Promise<T> => {
+      let timeoutId: ReturnType<typeof setTimeout>;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(errorMsg)), ms);
+      });
+      return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
+    };
+
     try {
       let finalImageUrl = imageUrl;
 
-      // Try to upload image, fall back to placeholder if Storage not enabled
       if (imageFile) {
         try {
-          finalImageUrl = await uploadProductImage(imageFile);
+          finalImageUrl = await withTimeout(uploadProductImage(imageFile), 8000, "Image upload timeout");
         } catch (uploadErr) {
           console.warn("Image upload failed, using placeholder:", uploadErr);
-          setImageError("⚠️ Không thể tải ảnh lên (Firebase Storage chưa bật). Dùng ảnh mặc định.");
+          setImageError("⚠️ Không thể tải ảnh (Lỗi Storage). Đã dùng ảnh mặc định.");
           finalImageUrl = `https://placehold.co/400x400/A8E6CF/2D6A4F?text=${encodeURIComponent(name)}`;
         }
       }
@@ -85,20 +92,19 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
         soldCount: isNew ? 0 : undefined,
       };
 
-      // Remove undefined fields
       Object.keys(data).forEach(key => data[key as keyof typeof data] === undefined && delete data[key as keyof typeof data]);
 
       if (isNew) {
-        await createProduct(data as Parameters<typeof createProduct>[0]);
+        await withTimeout(createProduct(data as Parameters<typeof createProduct>[0]), 8000, "Create product timeout");
         showToast("✅ Đã tạo sản phẩm!", "success");
       } else {
-        await updateProduct(id, data);
+        await withTimeout(updateProduct(id, data), 8000, "Update product timeout");
         showToast("✅ Đã cập nhật!", "success");
       }
       router.push("/admin/products");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      showToast("❌ Có lỗi xảy ra! Kiểm tra console.", "error");
+      showToast(`❌ Có lỗi: ${err?.message || "Kiểm tra console"}`, "error");
     } finally {
       setLoading(false);
     }
