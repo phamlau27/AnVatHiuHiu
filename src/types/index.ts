@@ -31,7 +31,7 @@ export interface Order {
   note: string;
   items: OrderItem[];
   totalPrice: number;
-  status: "new" | "archived";
+  status: "new" | "processing" | "completed" | "cancelled" | "archived";
   createdAt: Timestamp;
 }
 

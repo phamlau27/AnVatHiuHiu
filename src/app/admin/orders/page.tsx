@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAllOrders, archiveOrder, unarchiveOrder, deleteOrder } from "@/lib/firestore";
+import { getAllOrders, updateOrderStatus } from "@/lib/firestore";
 import { formatPrice } from "@/data/mockProducts";
 import { showToast } from "@/components/ui/Toast";
 import type { Order } from "@/types";
@@ -22,7 +22,7 @@ function formatDate(timestamp: Timestamp | undefined): string {
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "new" | "archived">("new");
+  const [filter, setFilter] = useState<"all" | "new" | "processing" | "completed" | "cancelled">("new");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
@@ -43,44 +43,21 @@ export default function AdminOrdersPage() {
     }
   }
 
-  async function handleArchive(orderId: string) {
+  async function handleStatusChange(orderId: string, newStatus: Order["status"]) {
     try {
-      await archiveOrder(orderId);
+      await updateOrderStatus(orderId, newStatus);
       setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status: "archived" as const } : o))
+        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
       );
-      showToast("Đã đánh dấu xử lý!", "success");
+      showToast("Đã cập nhật trạng thái!", "success");
     } catch {
       showToast("Có lỗi xảy ra", "error");
-    }
-  }
-
-  async function handleUnarchive(orderId: string) {
-    try {
-      await unarchiveOrder(orderId);
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status: "new" as const } : o))
-      );
-      showToast("Đã chuyển về Mới!", "success");
-    } catch {
-      showToast("Có lỗi xảy ra", "error");
-    }
-  }
-
-  async function handleDelete(orderId: string) {
-    if (!confirm("Bạn có chắc chắn muốn XÓA vĩnh viễn đơn hàng này không?")) return;
-    try {
-      await deleteOrder(orderId);
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
-      if (selectedOrder?.id === orderId) setSelectedOrder(null);
-      showToast("Đã xóa đơn hàng!", "success");
-    } catch {
-      showToast("Có lỗi xảy ra khi xóa", "error");
     }
   }
 
   const filtered = orders.filter((o) => {
     if (filter === "all") return true;
+    if (filter === "completed" && o.status === "archived") return true; // fallback for old data
     return o.status === filter;
   });
 
@@ -105,8 +82,8 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2">
-        {(["new", "archived", "all"] as const).map((f) => (
+      <div className="flex gap-2 flex-wrap">
+        {(["new", "processing", "completed", "cancelled", "all"] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -116,8 +93,11 @@ export default function AdminOrdersPage() {
                 : "bg-white text-text-secondary hover:bg-surface"
             }`}
           >
-            {f === "new" ? `🟡 Mới (${orders.filter((o) => o.status === "new").length})` : 
-             f === "archived" ? `✅ Đã xử lý` : "Tất cả"}
+            {f === "new" && `🟡 Mới (${orders.filter((o) => o.status === "new").length})`}
+            {f === "processing" && `🔵 Đang xử lý (${orders.filter((o) => o.status === "processing").length})`}
+            {f === "completed" && `✅ Đã xong (${orders.filter((o) => o.status === "completed" || o.status === "archived").length})`}
+            {f === "cancelled" && `❌ Đã hủy (${orders.filter((o) => o.status === "cancelled").length})`}
+            {f === "all" && "Tất cả"}
           </button>
         ))}
       </div>
@@ -140,7 +120,7 @@ export default function AdminOrdersPage() {
                   <th className="text-left px-5 py-3 font-medium">Món</th>
                   <th className="text-right px-5 py-3 font-medium">Tổng</th>
                   <th className="text-left px-5 py-3 font-medium">Thời gian</th>
-                  <th className="text-center px-5 py-3 font-medium">Thao tác</th>
+                  <th className="text-center px-5 py-3 font-medium">Trạng thái</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
@@ -165,38 +145,22 @@ export default function AdminOrdersPage() {
                       {formatDate(order.createdAt)}
                     </td>
                     <td className="px-5 py-3 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        {order.status === "new" ? (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleArchive(order.id);
-                            }}
-                            className="px-3 py-1.5 bg-mint/15 text-mint-dark rounded-lg text-xs font-medium hover:bg-mint/25 transition-colors"
-                          >
-                            ✅ Xử lý
-                          </button>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleUnarchive(order.id);
-                            }}
-                            className="px-3 py-1.5 bg-gray-100 text-text-secondary rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
-                          >
-                            ↩ Hoàn tác
-                          </button>
-                        )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(order.id);
-                          }}
-                          className="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors"
-                        >
-                          🗑️ Xóa
-                        </button>
-                      </div>
+                      <select
+                        onClick={(e) => e.stopPropagation()}
+                        value={order.status === "archived" ? "completed" : order.status}
+                        onChange={(e) => handleStatusChange(order.id, e.target.value as Order["status"])}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-lg border-0 outline-none cursor-pointer appearance-none text-center
+                          ${order.status === "new" ? "bg-yellow-100 text-yellow-700" : ""}
+                          ${order.status === "processing" ? "bg-blue-100 text-blue-700" : ""}
+                          ${order.status === "completed" || order.status === "archived" ? "bg-green-100 text-green-700" : ""}
+                          ${order.status === "cancelled" ? "bg-red-100 text-red-700" : ""}
+                        `}
+                      >
+                        <option value="new">🟡 Mới</option>
+                        <option value="processing">🔵 Đang xử lý</option>
+                        <option value="completed">✅ Đã xong</option>
+                        <option value="cancelled">❌ Đã hủy</option>
+                      </select>
                     </td>
                   </tr>
                 ))}
@@ -223,30 +187,22 @@ export default function AdminOrdersPage() {
                     {order.phone} • {order.items.length} món •{" "}
                     {order.type === "delivery" ? "🚚" : "🏪"}
                   </span>
-                  <div className="flex gap-2">
-                    {order.status === "new" ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleArchive(order.id);
-                        }}
-                        className="px-2.5 py-1 bg-mint/15 text-mint-dark rounded-lg font-medium"
-                      >
-                        ✅ Xử lý
-                      </button>
-                    ) : (
-                      <span className="text-green-600">✅ Đã xong</span>
-                    )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(order.id);
-                      }}
-                      className="px-2.5 py-1 bg-red-50 text-red-500 rounded-lg font-medium"
-                    >
-                      🗑️
-                    </button>
-                  </div>
+                  <select
+                    onClick={(e) => e.stopPropagation()}
+                    value={order.status === "archived" ? "completed" : order.status}
+                    onChange={(e) => handleStatusChange(order.id, e.target.value as Order["status"])}
+                    className={`text-xs font-bold px-2 py-1 rounded-md border-0 outline-none
+                      ${order.status === "new" ? "bg-yellow-100 text-yellow-700" : ""}
+                      ${order.status === "processing" ? "bg-blue-100 text-blue-700" : ""}
+                      ${order.status === "completed" || order.status === "archived" ? "bg-green-100 text-green-700" : ""}
+                      ${order.status === "cancelled" ? "bg-red-100 text-red-700" : ""}
+                    `}
+                  >
+                    <option value="new">🟡 Mới</option>
+                    <option value="processing">🔵 Đang xử lý</option>
+                    <option value="completed">✅ Đã xong</option>
+                    <option value="cancelled">❌ Đã hủy</option>
+                  </select>
                 </div>
               </div>
             ))}

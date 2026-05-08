@@ -178,8 +178,12 @@ export async function getAllOrders(): Promise<Order[]> {
   );
 }
 
+export async function updateOrderStatus(id: string, status: Order["status"]): Promise<void> {
+  await updateDoc(doc(db, "orders", id), { status });
+}
+
 export async function archiveOrder(id: string): Promise<void> {
-  await updateDoc(doc(db, "orders", id), { status: "archived" });
+  await updateDoc(doc(db, "orders", id), { status: "completed" });
 }
 
 export async function unarchiveOrder(id: string): Promise<void> {

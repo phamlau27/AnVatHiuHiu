@@ -95,10 +95,19 @@ export default function OrdersPage() {
                     className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                       order.status === "new"
                         ? "bg-yellow-100 text-yellow-700"
-                        : "bg-green-100 text-green-700"
+                        : order.status === "processing"
+                        ? "bg-blue-100 text-blue-700"
+                        : order.status === "completed" || order.status === "archived"
+                        ? "bg-green-100 text-green-700"
+                        : order.status === "cancelled"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-gray-100 text-gray-700"
                     }`}
                   >
-                    {order.status === "new" ? "Đang xử lý" : "Đã xử lý"}
+                    {order.status === "new" && "Chờ xác nhận"}
+                    {order.status === "processing" && "Đang xử lý"}
+                    {(order.status === "completed" || order.status === "archived") && "Đã hoàn thành"}
+                    {order.status === "cancelled" && "Đã hủy"}
                   </span>
                 </div>
 
