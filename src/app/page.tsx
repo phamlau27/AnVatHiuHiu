@@ -21,14 +21,10 @@ export default function HomePage() {
     async function fetchProducts() {
       try {
         const data = await getProducts();
-        if (data.length === 0) {
-          setAllProducts(mockProducts.map((p) => ({ ...p, createdAt: Timestamp.now() })));
-        } else {
-          setAllProducts(data);
-        }
+        setAllProducts(data);
       } catch (error) {
         console.error("Failed to fetch products:", error);
-        setAllProducts(mockProducts.map((p) => ({ ...p, createdAt: Timestamp.now() })));
+        setAllProducts([]);
       } finally {
         setLoading(false);
       }

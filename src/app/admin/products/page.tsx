@@ -15,7 +15,6 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("");
-  const [useMock, setUseMock] = useState(false);
 
   useEffect(() => { fetchProducts(); }, []);
 
@@ -23,16 +22,11 @@ export default function AdminProductsPage() {
     setLoading(true);
     try {
       const data = await getProducts();
-      if (data.length === 0) {
-        setProducts(mockProducts.map((p) => ({ ...p, createdAt: Timestamp.now() })));
-        setUseMock(true);
-      } else {
-        setProducts(data);
-        setUseMock(false);
-      }
-    } catch {
-      setProducts(mockProducts.map((p) => ({ ...p, createdAt: Timestamp.now() })));
-      setUseMock(true);
+      setProducts(data);
+    } catch (error) {
+      console.error("Lỗi khi tải sản phẩm:", error);
+      showToast("Lỗi khi kết nối với máy chủ", "error");
+      setProducts([]);
     } finally { setLoading(false); }
   }
 
@@ -62,7 +56,6 @@ export default function AdminProductsPage() {
           <Link href="/admin/products/new" className="px-4 py-2 bg-mint text-white rounded-xl text-sm font-bold hover:bg-mint-dark">+ Thêm</Link>
         </div>
       </div>
-      {useMock && <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl text-sm">⚠️ Dữ liệu mẫu. Cấu hình Firebase để quản lý thực.</div>}
       <div className="flex gap-3 flex-wrap">
         <input type="text" placeholder="Tìm..." value={search} onChange={(e) => setSearch(e.target.value)} className="px-4 py-2 bg-white border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint/50 flex-1 min-w-[200px]" />
         <select value={catFilter} onChange={(e) => setCatFilter(e.target.value)} className="px-4 py-2 bg-white border border-border rounded-xl text-sm">
@@ -91,7 +84,7 @@ export default function AdminProductsPage() {
                 <td className="px-5 py-3 text-center">
                   <div className="flex items-center justify-center gap-1">
                     <Link href={`/admin/products/${p.id}`} className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100">✏️ Sửa</Link>
-                    {!useMock && <button onClick={() => handleDelete(p.id)} className="px-2.5 py-1 bg-red-50 text-red-500 rounded-lg text-xs font-medium hover:bg-red-100">🗑️</button>}
+                    <button onClick={() => handleDelete(p.id)} className="px-2.5 py-1 bg-red-50 text-red-500 rounded-lg text-xs font-medium hover:bg-red-100">🗑️</button>
                   </div>
                 </td>
               </tr>

@@ -79,14 +79,7 @@ export async function getProductById(id: string): Promise<Product | null> {
       return { id: docSnap.id, ...docSnap.data() } as Product;
     }
   } catch (err) {
-    console.warn("getProductById from Firebase failed, falling back to mock:", err);
-  }
-
-  // Fallback to mock data
-  const { mockProducts } = await import("@/data/mockProducts");
-  const mockProduct = mockProducts.find(p => p.id === id);
-  if (mockProduct) {
-    return { ...mockProduct, createdAt: Timestamp.now() } as Product;
+    console.warn("getProductById failed:", err);
   }
   return null;
 }
