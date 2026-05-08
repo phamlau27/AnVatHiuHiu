@@ -77,7 +77,7 @@ export default function AdminProductsPage() {
           <tbody className="divide-y divide-border/50">
             {filtered.map((p) => (
               <tr key={p.id} className="hover:bg-surface/50">
-                <td className="px-5 py-3"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-lg overflow-hidden bg-surface flex-shrink-0 relative"><Image src={p.imageUrl} alt={p.name} fill className="object-cover" sizes="40px" /></div><span className="font-medium">{p.name}</span></div></td>
+                <td className="px-5 py-3"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-lg overflow-hidden bg-surface flex-shrink-0 relative"><Image src={p.imageUrl} alt={p.name} unoptimized fill className="object-cover" sizes="40px" /></div><span className="font-medium">{p.name}</span></div></td>
                 <td className="px-5 py-3 text-text-secondary">{CATEGORIES.find((c) => c.slug === p.category)?.name || p.category}</td>
                 <td className="px-5 py-3 text-right font-medium">{formatPrice(p.price)}</td>
 

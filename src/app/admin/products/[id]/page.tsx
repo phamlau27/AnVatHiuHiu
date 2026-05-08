@@ -69,10 +69,38 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
 
       if (imageFile) {
         try {
-          finalImageUrl = await withTimeout(uploadProductImage(imageFile), 8000, "Image upload timeout");
+          // Xử lý nén ảnh và chuyển sang Base64 trực tiếp tại trình duyệt
+          // Không cần dùng Firebase Storage để tránh lỗi
+          finalImageUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(imageFile);
+            reader.onload = (event) => {
+              const img = new Image();
+              img.src = event.target?.result as string;
+              img.onload = () => {
+                const canvas = document.createElement("canvas");
+                const MAX_SIZE = 600;
+                let { width, height } = img;
+                if (width > height && width > MAX_SIZE) {
+                  height *= MAX_SIZE / width;
+                  width = MAX_SIZE;
+                } else if (height > MAX_SIZE) {
+                  width *= MAX_SIZE / height;
+                  height = MAX_SIZE;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                ctx?.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL("image/jpeg", 0.7)); // nén 70% chất lượng
+              };
+              img.onerror = () => reject(new Error("Lỗi đọc ảnh"));
+            };
+            reader.onerror = () => reject(new Error("Lỗi đọc file"));
+          });
         } catch (uploadErr) {
-          console.warn("Image upload failed, using placeholder:", uploadErr);
-          setImageError("⚠️ Không thể tải ảnh (Lỗi Storage). Đã dùng ảnh mặc định.");
+          console.warn("Lỗi nén ảnh:", uploadErr);
+          setImageError("⚠️ Không thể xử lý ảnh. Đã dùng ảnh mặc định.");
           finalImageUrl = `https://placehold.co/400x400/A8E6CF/2D6A4F?text=${encodeURIComponent(name)}`;
         }
       }
