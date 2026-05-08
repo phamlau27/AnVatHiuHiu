@@ -1,25 +1,35 @@
 "use client";
 
-import { useState, useMemo, useCallback, Suspense } from "react";
+import { useState, useMemo, useCallback, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductGrid from "@/components/product/ProductGrid";
 import SearchBar from "@/components/product/SearchBar";
-import { mockProducts } from "@/data/mockProducts";
+import { getProducts } from "@/lib/firestore";
 import { SORT_OPTIONS } from "@/types";
 import type { Product, SortValue } from "@/types";
-import { Timestamp } from "firebase/firestore";
-
-const allProducts: Product[] = mockProducts.map((p) => ({
-  ...p,
-  createdAt: Timestamp.now(),
-}));
 
 function SearchContent() {
   const searchParams = useSearchParams();
   const initialSort = (searchParams.get("sort") as SortValue) || "default";
 
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortValue>(initialSort);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const data = await getProducts();
+        setAllProducts(data);
+      } catch (err) {
+        console.error("Lỗi khi tải sản phẩm:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProducts();
+  }, []);
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
@@ -37,13 +47,11 @@ function SearchContent() {
     // Sort
     switch (sortBy) {
       case "newest":
-        // Mock: reverse order
-        results.reverse();
+        results.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
         break;
       case "best-selling":
         results.sort((a, b) => b.soldCount - a.soldCount);
         break;
-
       case "price-asc":
         results.sort((a, b) => a.price - b.price);
         break;
@@ -53,7 +61,7 @@ function SearchContent() {
     }
 
     return results;
-  }, [searchQuery, sortBy]);
+  }, [allProducts, searchQuery, sortBy]);
 
   return (
     <div className="min-h-screen bg-background">
