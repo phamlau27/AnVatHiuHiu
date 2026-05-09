@@ -13,6 +13,15 @@ import Link from "next/link";
 
 const PAGE_SIZE = 30;
 
+/* ── Floating snack data ──────────────────────────────── */
+const FLOATING_SNACKS = [
+  { emoji: "🍿", size: "text-5xl", left: "8%",  top: "12%", delay: 0,   dur: 4.2, range: 14 },
+  { emoji: "🍪", size: "text-4xl", left: "78%", top: "8%",  delay: 0.6, dur: 3.8, range: 12 },
+  { emoji: "🧃", size: "text-5xl", left: "85%", top: "55%", delay: 1.2, dur: 4.5, range: 16 },
+  { emoji: "🍡", size: "text-4xl", left: "5%",  top: "68%", delay: 0.3, dur: 3.6, range: 10 },
+  { emoji: "🥜", size: "text-3xl", left: "60%", top: "75%", delay: 1.8, dur: 5.0, range: 12 },
+];
+
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string | undefined>();
   const [products, setProducts] = useState<Product[]>([]);
@@ -70,122 +79,147 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Hero Banner ─────────────────────────────────────── */}
+      {/* ── Hero Section ──────────────────────────────────── */}
       <section className="relative overflow-hidden">
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0d9488] via-[#14b8a6] to-[#5eead4]" />
-        {/* Dot pattern overlay */}
+        {/* Soft gradient background: white → mint */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white via-[#f0fdf9] to-[#ccfbf1]" />
+
+        {/* Blurred decorative shapes */}
+        <div className="absolute -top-32 -right-32 w-96 h-96 bg-teal-300/20 rounded-full blur-[100px]" />
+        <div className="absolute top-1/2 -left-24 w-72 h-72 bg-teal-400/15 rounded-full blur-[80px]" />
+        <div className="absolute -bottom-20 right-1/4 w-64 h-64 bg-emerald-200/20 rounded-full blur-[90px]" />
+
+        {/* Subtle dot pattern */}
         <div
-          className="absolute inset-0 opacity-10"
+          className="absolute inset-0 opacity-[0.04]"
           style={{
-            backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
+            backgroundImage: "radial-gradient(circle, #0d9488 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
           }}
         />
-        {/* Glowing orbs */}
-        <div className="absolute -top-20 -right-20 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-teal-300/20 rounded-full blur-3xl" />
 
-        <div className="relative max-w-5xl mx-auto px-4 py-10 md:py-16">
-          <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-            {/* Text */}
+        <div className="relative max-w-5xl mx-auto px-5 py-14 md:py-20">
+          <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
+            {/* ── Left: Text + CTA ── */}
             <motion.div
-              initial={{ opacity: 0, x: -30 }}
+              initial={{ opacity: 0, x: -40 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              className="flex-1 text-center md:text-left"
+              transition={{ duration: 0.7, ease: "easeOut" }}
+              className="flex-1 text-center md:text-left z-10"
             >
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                className="text-5xl md:text-6xl mb-4 block"
-              >
-                🍿
-              </motion.div>
-              <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-3 leading-tight">
-                Ăn Vặt{" "}
-                <span className="text-yellow-300">Híu Híu</span>
-              </h2>
-              <p className="text-teal-100 text-base md:text-lg max-w-sm mx-auto md:mx-0 mb-6">
-                Snack ngon mỗi ngày 🎉 Giao tận nhà hoặc nhận tại shop — nhanh &amp; tiện!
+              {/* Brand title */}
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.1] mb-4">
+                <span className="bg-gradient-to-r from-teal-700 via-teal-600 to-emerald-500 bg-clip-text text-transparent">
+                  Ăn Vặt
+                </span>
+                <br />
+                <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-400 bg-clip-text text-transparent">
+                  Híu Híu
+                </span>
+                <motion.span
+                  className="inline-block ml-2 text-4xl md:text-5xl"
+                  animate={{ rotate: [0, 12, -8, 0] }}
+                  transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+                >
+                  ✨
+                </motion.span>
+              </h1>
+
+              <p className="text-gray-500 text-base md:text-lg max-w-md mx-auto md:mx-0 mb-8 leading-relaxed">
+                Snack ngon mỗi ngày — Giao tận nhà hoặc nhận tại shop, nhanh & tiện!
               </p>
+
+              {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
-                <Link
-                  href="/search"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-teal-700 font-bold rounded-2xl shadow-lg hover:bg-yellow-50 transition-all hover:scale-105 active:scale-95"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  Tìm món ngon
-                </Link>
-                <button
-                  onClick={() => document.getElementById("product-section")?.scrollIntoView({ behavior: "smooth" })}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/15 backdrop-blur-sm text-white font-semibold rounded-2xl border border-white/30 hover:bg-white/25 transition-all"
-                >
-                  Xem sản phẩm ↓
-                </button>
+                <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+                  <Link
+                    href="/search"
+                    className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-gradient-to-r from-teal-500 to-teal-600 text-white font-bold rounded-2xl shadow-lg shadow-teal-500/25 hover:shadow-xl hover:shadow-teal-500/30 transition-all"
+                  >
+                    <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Tìm món ngon
+                  </Link>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+                  <button
+                    onClick={() => document.getElementById("product-section")?.scrollIntoView({ behavior: "smooth" })}
+                    className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white text-teal-700 font-semibold rounded-2xl border-2 border-teal-200 hover:border-teal-300 hover:bg-teal-50/50 transition-all shadow-sm"
+                  >
+                    Xem sản phẩm
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </motion.div>
               </div>
+
+              {/* Stats strip */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="mt-10 flex gap-6 justify-center md:justify-start"
+              >
+                {[
+                  { icon: "🚚", label: "Giao nhanh", sub: "Nội thành" },
+                  { icon: "💯", label: "Hàng chuẩn", sub: "Đảm bảo" },
+                  { icon: "💬", label: "Hỗ trợ Zalo", sub: "24/7" },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-2.5">
+                    <span className="text-2xl">{item.icon}</span>
+                    <div>
+                      <p className="text-xs font-bold text-gray-700">{item.label}</p>
+                      <p className="text-[10px] text-gray-400">{item.sub}</p>
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
             </motion.div>
 
-            {/* Floating snack icons */}
+            {/* ── Right: Floating Visuals ── */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="hidden md:flex relative w-64 h-64 shrink-0"
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="relative w-72 h-72 md:w-80 md:h-80 shrink-0"
             >
-              {[
-                { emoji: "🍜", delay: 0, x: "60%", y: "5%" },
-                { emoji: "🧃", delay: 0.5, x: "5%", y: "15%" },
-                { emoji: "🍡", delay: 1, x: "75%", y: "55%" },
-                { emoji: "🍪", delay: 1.5, x: "10%", y: "65%" },
-                { emoji: "🥜", delay: 0.8, x: "40%", y: "80%" },
-              ].map((item, i) => (
+              {/* Center glow */}
+              <div className="absolute inset-8 bg-gradient-to-br from-teal-200/40 to-amber-100/40 rounded-full blur-2xl" />
+
+              {/* Floating snack emojis */}
+              {FLOATING_SNACKS.map((snack, i) => (
                 <motion.span
                   key={i}
-                  className="absolute text-4xl select-none"
-                  style={{ left: item.x, top: item.y }}
-                  animate={{ y: [0, -10, 0] }}
+                  className={`absolute ${snack.size} select-none cursor-pointer filter drop-shadow-lg`}
+                  style={{ left: snack.left, top: snack.top }}
+                  animate={{
+                    y: [0, -snack.range, 0],
+                    rotate: [0, i % 2 === 0 ? 8 : -8, 0],
+                  }}
                   transition={{
                     repeat: Infinity,
-                    duration: 3,
-                    delay: item.delay,
+                    duration: snack.dur,
+                    delay: snack.delay,
                     ease: "easeInOut",
                   }}
+                  whileHover={{ scale: 1.3, rotate: 15, transition: { duration: 0.2 } }}
                 >
-                  {item.emoji}
+                  {snack.emoji}
                 </motion.span>
               ))}
-              {/* Big center icon */}
+
+              {/* Center icon */}
               <motion.div
                 className="absolute inset-0 flex items-center justify-center"
-                animate={{ rotate: [0, 5, -5, 0] }}
-                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                animate={{ y: [0, -8, 0], rotate: [0, 3, -3, 0] }}
+                transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
               >
-                <span className="text-8xl drop-shadow-xl">🛒</span>
+                <span className="text-8xl md:text-9xl drop-shadow-2xl">🛒</span>
               </motion.div>
             </motion.div>
           </div>
-
-          {/* Stats strip */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mt-8 grid grid-cols-3 gap-4 max-w-sm mx-auto md:mx-0"
-          >
-            {[
-              { icon: "🚚", label: "Giao nhanh" },
-              { icon: "✅", label: "Hàng chuẩn" },
-              { icon: "💬", label: "Hỗ trợ Zalo" },
-            ].map((item) => (
-              <div key={item.label} className="flex flex-col items-center gap-1 text-center">
-                <span className="text-2xl">{item.icon}</span>
-                <span className="text-xs text-teal-100 font-medium">{item.label}</span>
-              </div>
-            ))}
-          </motion.div>
         </div>
       </section>
 

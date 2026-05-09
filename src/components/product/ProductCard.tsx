@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useCartStore } from "@/stores/cartStore";
-import { useHasMounted } from "@/hooks/useHasMounted";
 import { showToast } from "@/components/ui/Toast";
 import { formatPrice } from "@/data/mockProducts";
 import type { Product } from "@/types";
@@ -14,7 +13,6 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, index = 0 }: ProductCardProps) {
-  const mounted = useHasMounted();
   const addItem = useCartStore((s) => s.addItem);
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -35,7 +33,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.04, 0.6), duration: 0.35, ease: "easeOut" }}
-      whileHover={{ y: -6, transition: { duration: 0.2 } }}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
       className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 group relative border border-border/40"
     >
       {/* Promo Badge */}
@@ -52,7 +50,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
           alt={product.name}
           fill
           unoptimized
-          className="object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
+          className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
           sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
           priority={index < 4}
         />
@@ -76,23 +74,11 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
           )}
         </div>
 
-        {/* Add to Cart Button (mobile always visible) */}
+        {/* Single Add to Cart Button */}
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={handleAddToCart}
-          className="w-full py-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 active:scale-95 text-white text-sm font-bold rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md md:hidden"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-          </svg>
-          Thêm vào giỏ
-        </motion.button>
-
-        {/* Desktop: always visible add to cart */}
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={handleAddToCart}
-          className="hidden md:flex w-full py-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white text-sm font-bold rounded-xl transition-all duration-150 items-center justify-center gap-1.5 shadow-sm hover:shadow-md"
+          className="w-full py-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 active:scale-95 text-white text-sm font-bold rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
