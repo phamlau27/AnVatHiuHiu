@@ -27,7 +27,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       quantity: 1,
       imageUrl: product.imageUrl,
     });
-    showToast(`✅ Đã thêm "${product.name}" vào giỏ!`, "success");
+    showToast(`Đã thêm "${product.name}" vào giỏ!`, "success");
   };
 
   return (
@@ -56,15 +56,6 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
           sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
           priority={index < 4}
         />
-        {/* Add to cart overlay on hover (desktop) */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={handleAddToCart}
-          className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-y-2 group-hover:translate-y-0 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-lg whitespace-nowrap hidden md:flex items-center gap-1"
-        >
-          + Thêm vào giỏ
-        </motion.button>
       </div>
 
       {/* Product Info */}

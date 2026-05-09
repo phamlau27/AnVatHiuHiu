@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useHasMounted } from "@/hooks/useHasMounted";
 import { useOrderHistoryStore } from "@/stores/orderHistoryStore";
-import { getOrdersByIds, updateOrderStatus } from "@/lib/firestore";
+import { getOrdersByIds, updateOrderStatus, updateOrder } from "@/lib/firestore";
 import { formatPrice } from "@/data/mockProducts";
 import type { Order } from "@/types";
 import { Timestamp } from "firebase/firestore";
@@ -28,6 +28,14 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<string | null>(null);
+
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [editNote, setEditNote] = useState("");
+  const [editType, setEditType] = useState<"delivery" | "pickup">("delivery");
+  const [saving, setSaving] = useState(false);
 
   async function fetchOrders() {
     if (orderIds.length === 0) {
@@ -62,6 +70,38 @@ export default function OrdersPage() {
       alert("Lỗi: Không thể hủy đơn hàng lúc này.");
     } finally {
       setCancelling(null);
+    }
+  }
+
+  function openEditModal(order: Order) {
+    setEditingOrder(order);
+    setEditName(order.customerName);
+    setEditPhone(order.phone);
+    setEditAddress(order.address || "");
+    setEditNote(order.note || "");
+    setEditType(order.type);
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingOrder) return;
+    setSaving(true);
+    try {
+      const updateData = {
+        customerName: editName.trim(),
+        phone: editPhone.trim(),
+        address: editType === "pickup" ? "23 Nguyễn Thái Học, Phường Tân Thành, Quận Tân Phú, TP.HCM" : editAddress.trim(),
+        type: editType,
+        note: editNote.trim(),
+      };
+      await updateOrder(editingOrder.id, updateData);
+      setOrders(prev => prev.map(o => o.id === editingOrder.id ? { ...o, ...updateData } : o));
+      setEditingOrder(null);
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi: Không thể cập nhật đơn hàng lúc này.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -195,9 +235,16 @@ export default function OrdersPage() {
                   </span>
                 </div>
 
-                {/* Cancel button - only for "new" (Chờ xác nhận) status */}
+                {/* Cancel & Edit buttons - only for "new" (Chờ xác nhận) status */}
                 {order.status === "new" && (
-                  <div className="px-4 pb-3 flex justify-end">
+                  <div className="px-4 pb-3 flex justify-end gap-2">
+                    <button
+                      disabled={cancelling === order.id}
+                      onClick={() => openEditModal(order)}
+                      className="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-medium hover:bg-blue-100 transition-colors disabled:opacity-50"
+                    >
+                      Sửa thông tin
+                    </button>
                     <button
                       disabled={cancelling === order.id}
                       onClick={() => handleCancel(order.id)}
@@ -212,6 +259,76 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {editingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
+          >
+            <div className="p-4 border-b flex justify-between items-center bg-surface">
+              <h3 className="font-bold text-lg">Sửa thông tin nhận hàng</h3>
+              <button onClick={() => setEditingOrder(null)} className="text-gray-500 hover:bg-gray-200 p-1.5 rounded-full">
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-4 overflow-y-auto">
+              <form id="edit-form" onSubmit={handleSaveEdit} className="space-y-4">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditType("delivery")}
+                    className={`flex-1 py-2 text-sm font-bold rounded-lg ${editType === "delivery" ? "bg-mint text-white" : "bg-gray-100 text-gray-600"}`}
+                  >
+                    Giao hàng
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditType("pickup")}
+                    className={`flex-1 py-2 text-sm font-bold rounded-lg ${editType === "pickup" ? "bg-mint text-white" : "bg-gray-100 text-gray-600"}`}
+                  >
+                    Nhận tại shop
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Họ tên *</label>
+                  <input required value={editName} onChange={e => setEditName(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">SĐT *</label>
+                  <input required value={editPhone} onChange={e => setEditPhone(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                </div>
+                
+                {editType === "delivery" && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Địa chỉ *</label>
+                    <input required value={editAddress} onChange={e => setEditAddress(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Ghi chú</label>
+                  <textarea value={editNote} onChange={e => setEditNote(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" rows={2} />
+                </div>
+              </form>
+            </div>
+            
+            <div className="p-4 border-t flex gap-2 bg-surface mt-auto">
+              <button type="button" onClick={() => setEditingOrder(null)} className="flex-1 py-2.5 bg-gray-200 hover:bg-gray-300 font-medium rounded-xl">
+                Đóng
+              </button>
+              <button type="submit" form="edit-form" disabled={saving || !editName.trim() || !editPhone.trim() || (editType === "delivery" && !editAddress.trim())} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl disabled:opacity-50">
+                {saving ? "Đang lưu..." : "Lưu thay đổi"}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

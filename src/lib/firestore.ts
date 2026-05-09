@@ -154,6 +154,14 @@ export async function createOrder(data: {
   return docRef.id;
 }
 
+export async function updateOrder(id: string, data: Partial<Order>): Promise<void> {
+  const updateData = { ...data };
+  // Remove fields that shouldn't be updated directly or are managed differently
+  delete updateData.id;
+  delete updateData.createdAt;
+  await updateDoc(doc(db, "orders", id), updateData);
+}
+
 export async function getOrdersByIds(ids: string[]): Promise<Order[]> {
   if (ids.length === 0) return [];
   const orders: Order[] = [];
