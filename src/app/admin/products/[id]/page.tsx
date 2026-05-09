@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getProductById, createProduct, updateProduct } from "@/lib/firestore";
-import { uploadProductImage } from "@/lib/storage";
+
 import { showToast } from "@/components/ui/Toast";
 import { CATEGORIES } from "@/types";
 
@@ -179,9 +179,10 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
             <div>
               <p className="text-xs text-text-secondary mb-1">Cách 1: Dán đường link ảnh từ trên mạng (Google, Facebook, Imgur...)</p>
               <input 
-                type="url" 
-                value={imageUrl} 
-                onChange={(e) => setImageUrl(e.target.value)} 
+                type="text" 
+                value={imageUrl.startsWith("data:") ? "[Ảnh đã tải lên - sẽ giữ nguyên nếu không thay đổi]" : imageUrl} 
+                onChange={(e) => { if (!e.target.value.startsWith("[")) setImageUrl(e.target.value); }} 
+                onFocus={(e) => { if (imageUrl.startsWith("data:")) e.target.select(); }}
                 placeholder="https://..." 
                 className="w-full px-4 py-2 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint/50" 
               />

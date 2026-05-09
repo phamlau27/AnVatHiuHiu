@@ -194,7 +194,6 @@ export default function CheckoutForm() {
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Ví dụ: Giao buổi chiều, ít cay..."
               rows={3}
               className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-mint/50 focus:border-mint transition-all resize-none"
             />

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useHasMounted } from "@/hooks/useHasMounted";
 import { useOrderHistoryStore } from "@/stores/orderHistoryStore";
-import { getOrdersByIds } from "@/lib/firestore";
+import { getOrdersByIds, updateOrderStatus } from "@/lib/firestore";
 import { formatPrice } from "@/data/mockProducts";
 import type { Order } from "@/types";
 import { Timestamp } from "firebase/firestore";
@@ -27,25 +27,43 @@ export default function OrdersPage() {
   const orderIds = useOrderHistoryStore((s) => s.orderIds);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState<string | null>(null);
+
+  async function fetchOrders() {
+    if (orderIds.length === 0) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const fetched = await getOrdersByIds(orderIds);
+      setOrders(fetched);
+    } catch (err) {
+      console.error("Failed to fetch orders:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (!mounted) return;
-    async function fetchOrders() {
-      if (orderIds.length === 0) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const fetched = await getOrdersByIds(orderIds);
-        setOrders(fetched);
-      } catch (err) {
-        console.error("Failed to fetch orders:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchOrders();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, orderIds]);
+
+  async function handleCancel(orderId: string) {
+    if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
+    setCancelling(orderId);
+    try {
+      await updateOrderStatus(orderId, "cancelled");
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: "cancelled" } : o));
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi: Không thể hủy đơn hàng lúc này.");
+    } finally {
+      setCancelling(null);
+    }
+  }
 
   if (!mounted || loading) {
     return (
@@ -61,7 +79,7 @@ export default function OrdersPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-bold">📦 Đơn hàng của tôi</h1>
           <button
-            onClick={() => window.location.reload()}
+            onClick={fetchOrders}
             className="px-3 py-1.5 bg-white border border-border rounded-xl text-xs font-medium hover:bg-surface transition-colors flex items-center gap-1.5 text-text-secondary"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -101,6 +119,7 @@ export default function OrdersPage() {
                     <span className="text-xs font-mono font-bold text-mint-dark">
                       {order.id.slice(0, 8).toUpperCase()}
                     </span>
+                    <span className="text-xs text-text-secondary ml-2">• {formatDate(order.createdAt)}</span>
                   </div>
                   <span
                     className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -115,11 +134,41 @@ export default function OrdersPage() {
                         : "bg-gray-100 text-gray-700"
                     }`}
                   >
-                    {order.status === "new" && "Chờ xác nhận"}
-                    {order.status === "processing" && "Đang xử lý"}
-                    {(order.status === "completed" || order.status === "archived") && "Đã hoàn thành"}
-                    {order.status === "cancelled" && "Đã hủy"}
+                    {order.status === "new" && "⏳ Chờ xác nhận"}
+                    {order.status === "processing" && "🔵 Đang xử lý"}
+                    {(order.status === "completed" || order.status === "archived") && "✅ Đã hoàn thành"}
+                    {order.status === "cancelled" && "❌ Đã hủy"}
                   </span>
+                </div>
+
+                {/* Customer Info */}
+                <div className="px-4 py-3 border-b border-border/50 space-y-1.5">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-text-secondary w-28 shrink-0">👤 Người đặt</span>
+                    <span className="font-medium">{order.customerName}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-text-secondary w-28 shrink-0">📞 SĐT</span>
+                    <span className="font-medium">{order.phone}</span>
+                  </div>
+                  {order.type === "delivery" && order.address && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <span className="text-text-secondary w-28 shrink-0">📍 Địa chỉ</span>
+                      <span className="font-medium">{order.address}</span>
+                    </div>
+                  )}
+                  {order.type === "pickup" && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-text-secondary w-28 shrink-0">🏪 Hình thức</span>
+                      <span className="font-medium">Tự đến lấy</span>
+                    </div>
+                  )}
+                  {order.note && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <span className="text-text-secondary w-28 shrink-0">📝 Ghi chú</span>
+                      <span className="italic text-text-secondary">{order.note}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Order Items */}
@@ -137,40 +186,27 @@ export default function OrdersPage() {
                 </div>
 
                 {/* Order Footer */}
-                <div className="px-4 py-3 border-t border-border/50 flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-text-secondary">
-                      <span>{order.type === "delivery" ? "🚚 Giao hàng" : "🏪 Tự đến lấy"}</span>
-                      <span className="mx-1.5">•</span>
-                      <span>{formatDate(order.createdAt)}</span>
-                    </div>
-                    <span className="font-bold text-mint-dark">
-                      {formatPrice(order.totalPrice)}
-                    </span>
-                  </div>
-                  
-                  {(order.status === "new" || order.status === "processing") && (
-                    <div className="flex justify-end pt-1">
-                      <button
-                        onClick={async () => {
-                          if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
-                          try {
-                            const { updateOrderStatus } = await import("@/lib/firestore");
-                            await updateOrderStatus(order.id, "cancelled");
-                            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: "cancelled" } : o));
-                            alert("Đã hủy đơn hàng thành công!");
-                          } catch (err) {
-                            console.error(err);
-                            alert("Lỗi: Không thể hủy đơn hàng lúc này.");
-                          }
-                        }}
-                        className="px-4 py-1.5 bg-red-50 text-red-500 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors"
-                      >
-                        Hủy đơn hàng
-                      </button>
-                    </div>
-                  )}
+                <div className="px-4 py-3 border-t border-border/50 flex items-center justify-between">
+                  <span className="text-xs text-text-secondary">
+                    {order.type === "delivery" ? "🚚 Giao hàng" : "🏪 Tự đến lấy"}
+                  </span>
+                  <span className="font-bold text-mint-dark">
+                    {formatPrice(order.totalPrice)}
+                  </span>
                 </div>
+
+                {/* Cancel button - only for "new" (Chờ xác nhận) status */}
+                {order.status === "new" && (
+                  <div className="px-4 pb-3 flex justify-end">
+                    <button
+                      disabled={cancelling === order.id}
+                      onClick={() => handleCancel(order.id)}
+                      className="px-4 py-1.5 bg-red-50 text-red-500 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors disabled:opacity-50"
+                    >
+                      {cancelling === order.id ? "Đang hủy..." : "Hủy đơn hàng"}
+                    </button>
+                  </div>
+                )}
               </motion.div>
             ))}
           </div>
