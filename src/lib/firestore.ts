@@ -80,16 +80,30 @@ export async function getProductsPaginated(options: {
   lastDoc?: DocumentSnapshot | null;
 }): Promise<{ products: Product[]; lastDoc: DocumentSnapshot | null; hasMore: boolean }> {
   const PAGE_SIZE = options.pageSize ?? 30;
-  let q = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(PAGE_SIZE + 1));
 
+  // When filtering by category, fetch ALL matching docs and sort client-side
+  // (avoids requiring a composite Firestore index for category + createdAt)
   if (options.category) {
-    q = query(collection(db, "products"), where("category", "==", options.category), orderBy("createdAt", "desc"), limit(PAGE_SIZE + 1));
+    const q = query(
+      collection(db, "products"),
+      where("category", "==", options.category)
+    );
+    const snapshot = await getDocs(q);
+    let products = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
+    // Sort by createdAt desc client-side
+    products.sort((a, b) => {
+      const aTime = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
+      const bTime = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
+      return bTime - aTime;
+    });
+    return { products, lastDoc: null, hasMore: false };
   }
 
+  // No category filter — use server-side pagination with orderBy
+  let q = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(PAGE_SIZE + 1));
+
   if (options.lastDoc) {
-    q = options.category
-      ? query(collection(db, "products"), where("category", "==", options.category), orderBy("createdAt", "desc"), startAfter(options.lastDoc), limit(PAGE_SIZE + 1))
-      : query(collection(db, "products"), orderBy("createdAt", "desc"), startAfter(options.lastDoc), limit(PAGE_SIZE + 1));
+    q = query(collection(db, "products"), orderBy("createdAt", "desc"), startAfter(options.lastDoc), limit(PAGE_SIZE + 1));
   }
 
   const snapshot = await getDocs(q);
