@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import Badge from "@/components/ui/Badge";
 import { useCartStore } from "@/stores/cartStore";
 import { useHasMounted } from "@/hooks/useHasMounted";
 import { showToast } from "@/components/ui/Toast";
@@ -18,29 +17,34 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const mounted = useHasMounted();
   const addItem = useCartStore((s) => s.addItem);
 
-  const displayPrice = product.price;
-
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     addItem({
       productId: product.id,
       name: product.name,
-      price: displayPrice,
+      price: product.price,
       quantity: 1,
       imageUrl: product.imageUrl,
     });
-    showToast(`Đã thêm "${product.name}" vào giỏ!`, "success");
+    showToast(`✅ Đã thêm "${product.name}" vào giỏ!`, "success");
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.3 }}
-      whileHover={{ y: -4 }}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group relative"
+      transition={{ delay: Math.min(index * 0.04, 0.6), duration: 0.35, ease: "easeOut" }}
+      whileHover={{ y: -6, transition: { duration: 0.2 } }}
+      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 group relative border border-border/40"
     >
+      {/* Promo Badge */}
+      {product.isPromotion && (
+        <div className="absolute top-2 left-2 z-10 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+          🔥 KM
+        </div>
+      )}
+
       {/* Product Image */}
       <div className="aspect-square bg-surface overflow-hidden relative">
         <Image
@@ -48,34 +52,59 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
           alt={product.name}
           fill
           unoptimized
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
+          className="object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
           sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
           priority={index < 4}
         />
+        {/* Add to cart overlay on hover (desktop) */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={handleAddToCart}
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-y-2 group-hover:translate-y-0 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-lg whitespace-nowrap hidden md:flex items-center gap-1"
+        >
+          + Thêm vào giỏ
+        </motion.button>
       </div>
 
       {/* Product Info */}
       <div className="p-3">
-        <h3 className="text-sm font-semibold text-text-primary line-clamp-2 leading-tight mb-1.5 min-h-[2.5rem]">
+        <h3 className="text-sm font-semibold text-text-primary line-clamp-2 leading-tight mb-2 min-h-[2.5rem]">
           {product.name}
         </h3>
 
         {/* Price */}
-        <div className="flex items-baseline gap-1.5 mb-2">
-          <span className="text-base font-bold text-mint-dark">
-            {formatPrice(displayPrice)}
+        <div className="flex items-baseline gap-1.5 mb-2.5">
+          <span className="text-base font-bold text-teal-700">
+            {formatPrice(product.price)}
           </span>
-
+          {product.isPromotion && product.promoPrice && (
+            <span className="text-xs text-text-secondary line-through">
+              {formatPrice(product.promoPrice)}
+            </span>
+          )}
         </div>
 
-        {/* Add to Cart Button */}
+        {/* Add to Cart Button (mobile always visible) */}
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={handleAddToCart}
-          className="w-full py-2 bg-mint hover:bg-mint-dark text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5"
+          className="w-full py-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 active:scale-95 text-white text-sm font-bold rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md md:hidden"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+          </svg>
+          Thêm vào giỏ
+        </motion.button>
+
+        {/* Desktop: always visible add to cart */}
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={handleAddToCart}
+          className="hidden md:flex w-full py-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white text-sm font-bold rounded-xl transition-all duration-150 items-center justify-center gap-1.5 shadow-sm hover:shadow-md"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
           </svg>
           Thêm vào giỏ
         </motion.button>

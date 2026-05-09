@@ -10,9 +10,11 @@ import {
   where,
   orderBy,
   limit,
+  startAfter,
   documentId,
   serverTimestamp,
   Timestamp,
+  DocumentSnapshot,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type { Product, Order, OrderItem } from "@/types";
@@ -69,6 +71,34 @@ export async function getProducts(filters?: {
   }
 
   return products;
+}
+
+// Paginated products with startAfter cursor
+export async function getProductsPaginated(options: {
+  category?: string;
+  pageSize?: number;
+  lastDoc?: DocumentSnapshot | null;
+}): Promise<{ products: Product[]; lastDoc: DocumentSnapshot | null; hasMore: boolean }> {
+  const PAGE_SIZE = options.pageSize ?? 30;
+  let q = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(PAGE_SIZE + 1));
+
+  if (options.category) {
+    q = query(collection(db, "products"), where("category", "==", options.category), orderBy("createdAt", "desc"), limit(PAGE_SIZE + 1));
+  }
+
+  if (options.lastDoc) {
+    q = options.category
+      ? query(collection(db, "products"), where("category", "==", options.category), orderBy("createdAt", "desc"), startAfter(options.lastDoc), limit(PAGE_SIZE + 1))
+      : query(collection(db, "products"), orderBy("createdAt", "desc"), startAfter(options.lastDoc), limit(PAGE_SIZE + 1));
+  }
+
+  const snapshot = await getDocs(q);
+  const hasMore = snapshot.docs.length > PAGE_SIZE;
+  const docs = hasMore ? snapshot.docs.slice(0, PAGE_SIZE) : snapshot.docs;
+  const products = docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
+  const lastDoc = docs.length > 0 ? docs[docs.length - 1] : null;
+
+  return { products, lastDoc, hasMore };
 }
 
 export async function getProductById(id: string): Promise<Product | null> {

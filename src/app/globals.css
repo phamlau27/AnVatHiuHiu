@@ -2,23 +2,23 @@
 
 /* ─── Custom Theme ────────────────────────────────── */
 @theme inline {
-  --color-mint-50: #f0fdf7;
-  --color-mint-100: #dcfce9;
-  --color-mint-200: #bbf7d4;
-  --color-mint-300: #86efb0;
+  --color-mint-50: #f0fdf4;
+  --color-mint-100: #dcfce7;
+  --color-mint-200: #bbf7d0;
+  --color-mint-300: #86efac;
   --color-mint-400: #4ade80;
   --color-mint-500: #22c55e;
   --color-mint-600: #16a34a;
-  --color-mint: #A8E6CF;
-  --color-mint-light: #DCEDC1;
-  --color-mint-dark: #7BC4A8;
+  --color-mint: #14b8a6;
+  --color-mint-light: #99f6e4;
+  --color-mint-dark: #0d9488;
   --color-accent: #FF6B6B;
   --color-accent-light: #FFE0E0;
   --color-sale: #FF4757;
   --color-hot: #FF6348;
-  --color-background: #FFFFFF;
-  --color-surface: #F8FAF9;
-  --color-text-primary: #1A1A2E;
+  --color-background: #FAFBFF;
+  --color-surface: #F3F4F6;
+  --color-text-primary: #111827;
   --color-text-secondary: #6B7280;
   --color-border: #E5E7EB;
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
@@ -68,10 +68,16 @@ body {
 
 /* ─── Gradient Text ───────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, var(--color-mint-dark), var(--color-mint-500));
+  background: linear-gradient(135deg, #0d9488, #14b8a6, #06b6d4);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.scale-108 {
+  --tw-scale-x: 1.08;
+  --tw-scale-y: 1.08;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
 /* ─── Glass Effect ────────────────────────────────── */
