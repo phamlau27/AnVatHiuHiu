@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { getProducts, deleteProduct } from "@/lib/firestore";
+import { subscribeToAllProducts, deleteProduct } from "@/lib/firestore";
 import { formatPrice, mockProducts } from "@/data/mockProducts";
 import { showToast } from "@/components/ui/Toast";
 import { CATEGORIES } from "@/types";
@@ -16,25 +16,18 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("");
 
-  useEffect(() => { fetchProducts(); }, []);
-
-  async function fetchProducts() {
-    setLoading(true);
-    try {
-      const data = await getProducts();
+  useEffect(() => {
+    const unsub = subscribeToAllProducts((data) => {
       setProducts(data);
-    } catch (error) {
-      console.error("Lỗi khi tải sản phẩm:", error);
-      showToast("Lỗi khi kết nối với máy chủ", "error");
-      setProducts([]);
-    } finally { setLoading(false); }
-  }
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
 
   async function handleDelete(id: string) {
     if (!confirm("Xóa sản phẩm này?")) return;
     try {
       await deleteProduct(id);
-      setProducts((prev) => prev.filter((p) => p.id !== id));
       showToast("Đã xóa!", "success");
     } catch { showToast("Lỗi khi xóa", "error"); }
   }
@@ -52,7 +45,6 @@ export default function AdminProductsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold">🛍️ Sản phẩm</h1>
         <div className="flex gap-2">
-          <button onClick={fetchProducts} className="px-4 py-2 bg-white border border-border rounded-xl text-sm hover:bg-surface">🔄 Làm mới</button>
           <Link href="/admin/products/new" className="px-4 py-2 bg-mint text-white rounded-xl text-sm font-bold hover:bg-mint-dark">+ Thêm</Link>
         </div>
       </div>

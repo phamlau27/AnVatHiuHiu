@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useHasMounted } from "@/hooks/useHasMounted";
 import { useOrderHistoryStore } from "@/stores/orderHistoryStore";
-import { getOrdersByIds, updateOrderStatus } from "@/lib/firestore";
+import { subscribeToOrdersByIds, updateOrderStatus } from "@/lib/firestore";
 import { formatPrice } from "@/data/mockProducts";
 import type { Order } from "@/types";
 import { Timestamp } from "firebase/firestore";
@@ -29,26 +29,18 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<string | null>(null);
 
-  async function fetchOrders() {
-    if (orderIds.length === 0) {
+  useEffect(() => {
+    if (!mounted || orderIds.length === 0) {
       setLoading(false);
       return;
     }
-    setLoading(true);
-    try {
-      const fetched = await getOrdersByIds(orderIds);
-      setOrders(fetched);
-    } catch (err) {
-      console.error("Failed to fetch orders:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
 
-  useEffect(() => {
-    if (!mounted) return;
-    fetchOrders();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const unsub = subscribeToOrdersByIds(orderIds, (fetched) => {
+      setOrders(fetched);
+      setLoading(false);
+    });
+
+    return () => unsub();
   }, [mounted, orderIds]);
 
   async function handleCancel(orderId: string) {
@@ -78,15 +70,6 @@ export default function OrdersPage() {
       <div className="max-w-lg mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-bold">📦 Đơn hàng của tôi</h1>
-          <button
-            onClick={fetchOrders}
-            className="px-3 py-1.5 bg-white border border-border rounded-xl text-xs font-medium hover:bg-surface transition-colors flex items-center gap-1.5 text-text-secondary"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Tải lại
-          </button>
         </div>
 
         {orders.length === 0 ? (

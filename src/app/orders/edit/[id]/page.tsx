@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useHasMounted } from "@/hooks/useHasMounted";
-import { getOrdersByIds, updateOrder } from "@/lib/firestore";
+import { subscribeToOrder, updateOrder } from "@/lib/firestore";
 import { showToast } from "@/components/ui/Toast";
 import { formatPrice } from "@/data/mockProducts";
 import type { Order, OrderItem } from "@/types";
@@ -24,6 +24,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Editable fields
   const [type, setType] = useState<"delivery" | "pickup">("delivery");
@@ -35,31 +36,38 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
 
   useEffect(() => {
     if (!mounted) return;
-    (async () => {
-      try {
-        const orders = await getOrdersByIds([orderId]);
-        if (orders.length > 0) {
-          const o = orders[0];
-          if (o.status !== "new") {
-            showToast("Đơn hàng này không thể chỉnh sửa.", "error");
-            router.push("/orders");
-            return;
-          }
-          setOrder(o);
-          setName(o.customerName);
-          setPhone(o.phone);
-          setAddress(o.address || "");
-          setNote(o.note || "");
-          setType(o.type);
-          setItems(o.items.map(item => ({ ...item })));
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+    
+    const unsub = subscribeToOrder(orderId, (o) => {
+      if (!o) {
+        showToast("Đơn hàng không tồn tại hoặc đã bị xóa.", "error");
+        router.push("/orders");
+        return;
       }
-    })();
-  }, [mounted, orderId, router]);
+
+      if (o.status !== "new") {
+        showToast("Đơn hàng này đang được xử lý và không thể chỉnh sửa thêm.", "info");
+        router.push("/orders");
+        return;
+      }
+
+      setOrder(o);
+      
+      // Only initialize form fields once
+      if (!isInitialized) {
+        setName(o.customerName);
+        setPhone(o.phone);
+        setAddress(o.address || "");
+        setNote(o.note || "");
+        setType(o.type);
+        setItems(o.items.map(item => ({ ...item })));
+        setIsInitialized(true);
+      }
+      
+      setLoading(false);
+    });
+
+    return () => unsub();
+  }, [mounted, orderId, router, isInitialized]);
 
   const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 

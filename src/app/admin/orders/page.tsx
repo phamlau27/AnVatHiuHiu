@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAllOrders, updateOrderStatus, deleteOrder } from "@/lib/firestore";
+import { subscribeToAllOrders, updateOrderStatus, deleteOrder } from "@/lib/firestore";
 import { formatPrice } from "@/data/mockProducts";
 import { showToast } from "@/components/ui/Toast";
 import type { Order } from "@/types";
@@ -30,22 +30,12 @@ export default function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
-    fetchOrders();
-    // Auto-refresh every 2 minutes
-    const interval = setInterval(fetchOrders, 120000);
-    return () => clearInterval(interval);
-  }, []);
-
-  async function fetchOrders() {
-    try {
-      const data = await getAllOrders();
+    const unsub = subscribeToAllOrders((data) => {
       setOrders(data);
-    } catch (err) {
-      console.error("Failed to fetch:", err);
-    } finally {
       setLoading(false);
-    }
-  }
+    });
+    return () => unsub();
+  }, []);
 
   async function handleStatusChange(orderId: string, newStatus: Order["status"]) {
     try {
@@ -89,12 +79,6 @@ export default function AdminOrdersPage() {
     <div className="max-w-5xl mx-auto space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold">📦 Quản lý đơn hàng</h1>
-        <button
-          onClick={fetchOrders}
-          className="px-4 py-2 bg-white border border-border rounded-xl text-sm font-medium hover:bg-surface transition-colors"
-        >
-          🔄 Làm mới
-        </button>
       </div>
 
       {/* Filter Tabs */}

@@ -15,6 +15,7 @@ import {
   serverTimestamp,
   Timestamp,
   DocumentSnapshot,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type { Product, Order, OrderItem } from "@/types";
@@ -71,6 +72,41 @@ export async function getProducts(filters?: {
   }
 
   return products;
+}
+
+/**
+ * Real-time listener for specific products (useful for cart validation)
+ */
+export function subscribeToProductsByIds(ids: string[], callback: (products: Product[]) => void) {
+  if (ids.length === 0) {
+    callback([]);
+    return () => {};
+  }
+  
+  // Split into chunks of 30 as 'in' query limit
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += 30) {
+    chunks.push(ids.slice(i, i + 30));
+  }
+
+  const unsubscribers: (() => void)[] = [];
+  const resultsByChunk: { [key: number]: Product[] } = {};
+
+  chunks.forEach((chunk, index) => {
+    const q = query(collection(db, "products"), where(documentId(), "in", chunk));
+    const unsub = onSnapshot(q, (snapshot) => {
+      resultsByChunk[index] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      
+      // Merge all chunks and call back
+      const allProducts = Object.values(resultsByChunk).flat();
+      callback(allProducts);
+    }, (error) => {
+      console.error(`Error subscribing to products chunk ${index}:`, error);
+    });
+    unsubscribers.push(unsub);
+  });
+
+  return () => unsubscribers.forEach(unsub => unsub());
 }
 
 // Helper to shuffle array
@@ -184,6 +220,21 @@ export async function updateOrder(id: string, data: Partial<Order>): Promise<voi
   await updateDoc(doc(db, "orders", id), updateData);
 }
 
+/**
+ * Real-time listener for a single order
+ */
+export function subscribeToOrder(orderId: string, callback: (order: Order | null) => void) {
+  return onSnapshot(doc(db, "orders", orderId), (docSnap) => {
+    if (docSnap.exists()) {
+      callback({ id: docSnap.id, ...docSnap.data() } as Order);
+    } else {
+      callback(null);
+    }
+  }, (error) => {
+    console.error(`Error subscribing to order ${orderId}:`, error);
+  });
+}
+
 export async function getOrdersByIds(ids: string[]): Promise<Order[]> {
   if (ids.length === 0) return [];
   const orders: Order[] = [];
@@ -203,6 +254,41 @@ export async function getOrdersByIds(ids: string[]): Promise<Order[]> {
     const bTime = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
     return bTime - aTime;
   });
+}
+
+/**
+ * Real-time listener for multiple orders by ID
+ */
+export function subscribeToOrdersByIds(ids: string[], callback: (orders: Order[]) => void) {
+  if (ids.length === 0) {
+    callback([]);
+    return () => {};
+  }
+
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += 30) {
+    chunks.push(ids.slice(i, i + 30));
+  }
+
+  const unsubscribers: (() => void)[] = [];
+  const resultsByChunk: { [key: number]: Order[] } = {};
+
+  chunks.forEach((chunk, index) => {
+    const q = query(collection(db, "orders"), where(documentId(), "in", chunk));
+    const unsub = onSnapshot(q, (snapshot) => {
+      resultsByChunk[index] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+      
+      const allOrders = Object.values(resultsByChunk).flat().sort((a, b) => {
+        const aTime = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
+        const bTime = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
+        return bTime - aTime;
+      });
+      callback(allOrders);
+    });
+    unsubscribers.push(unsub);
+  });
+
+  return () => unsubscribers.forEach(unsub => unsub());
 }
 
 // ─── Admin: Products CRUD ────────────────────────────
@@ -228,6 +314,14 @@ export async function deleteProduct(id: string): Promise<void> {
   await deleteDoc(doc(db, "products", id));
 }
 
+export function subscribeToAllProducts(callback: (products: Product[]) => void) {
+  const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+  return onSnapshot(q, (snapshot) => {
+    const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    callback(products);
+  });
+}
+
 // ─── Admin: Orders ───────────────────────────────────
 
 export async function getAllOrders(): Promise<Order[]> {
@@ -236,6 +330,19 @@ export async function getAllOrders(): Promise<Order[]> {
   return snapshot.docs
     .map((doc) => ({ id: doc.id, ...doc.data() } as Order))
     .filter((order) => !order.adminDeleted);
+}
+
+/**
+ * Real-time listener for all admin orders
+ */
+export function subscribeToAllOrders(callback: (orders: Order[]) => void) {
+  const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+  return onSnapshot(q, (snapshot) => {
+    const orders = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() } as Order))
+      .filter((order) => !order.adminDeleted);
+    callback(orders);
+  });
 }
 
 export async function updateOrderStatus(id: string, status: Order["status"]): Promise<void> {

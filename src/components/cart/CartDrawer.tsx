@@ -8,7 +8,7 @@ import CartItem from "./CartItem";
 import { formatPrice } from "@/data/mockProducts";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getProductsByIds } from "@/lib/firestore";
+import { subscribeToProductsByIds } from "@/lib/firestore";
 
 export default function CartDrawer() {
   const mounted = useHasMounted();
@@ -27,35 +27,28 @@ export default function CartDrawer() {
 
   useEffect(() => {
     if (isOpen && items.length > 0) {
-      let isCurrent = true;
       setIsValidating(true);
-      (async () => {
-        try {
-          const productIds = items.map(i => i.productId);
-          const validProducts = await getProductsByIds(productIds);
-          const validIds = new Set(validProducts.map(p => p.id));
-          const invalidIds = productIds.filter(id => !validIds.has(id));
-          
-          if (isCurrent) {
-            setInvalidProductIds(invalidIds);
-            
-            // Auto unselect invalid items so they don't count towards total
-            if (invalidIds.length > 0) {
-              const { toggleSelectItem } = useCartStore.getState();
-              items.forEach(item => {
-                if (item.selected && invalidIds.includes(item.productId)) {
-                  toggleSelectItem(item.productId);
-                }
-              });
+      const productIds = items.map(i => i.productId);
+      
+      const unsub = subscribeToProductsByIds(productIds, (validProducts) => {
+        const validIds = new Set(validProducts.map(p => p.id));
+        const invalidIds = productIds.filter(id => !validIds.has(id));
+        
+        setInvalidProductIds(invalidIds);
+        setIsValidating(false);
+        
+        // Auto unselect invalid items
+        if (invalidIds.length > 0) {
+          const { toggleSelectItem } = useCartStore.getState();
+          items.forEach(item => {
+            if (item.selected && invalidIds.includes(item.productId)) {
+              toggleSelectItem(item.productId);
             }
-          }
-        } catch (error) {
-          console.error("Cart validation failed:", error);
-        } finally {
-          if (isCurrent) setIsValidating(false);
+          });
         }
-      })();
-      return () => { isCurrent = false; };
+      });
+
+      return () => unsub();
     }
   }, [isOpen, items.length]); // Intentionally not depending on full items array to avoid infinite loop on toggle
 
