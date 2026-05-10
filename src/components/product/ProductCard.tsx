@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useCartStore } from "@/stores/cartStore";
 import { showToast } from "@/components/ui/Toast";
 import { formatPrice } from "@/data/mockProducts";
@@ -14,6 +15,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem);
+  const [showDesc, setShowDesc] = useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -26,6 +28,14 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       imageUrl: product.imageUrl,
     });
     showToast(`Đã thêm "${product.name}" vào giỏ!`, "success");
+  };
+
+  const handleImageClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (product.description) {
+      setShowDesc(!showDesc);
+    }
   };
 
   return (
@@ -44,7 +54,11 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       )}
 
       {/* Product Image */}
-      <div className="aspect-square bg-surface overflow-hidden relative shrink-0">
+      <div 
+        className="aspect-square bg-surface overflow-hidden relative shrink-0 cursor-pointer group/img"
+        onClick={handleImageClick}
+        onMouseLeave={() => setShowDesc(false)}
+      >
         <Image
           src={product.imageUrl}
           alt={product.name}
@@ -54,6 +68,17 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
           sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
           priority={index < 4}
         />
+
+        {/* Description Overlay */}
+        {product.description && (
+          <div 
+            className={`absolute inset-0 bg-black/80 p-4 flex items-center justify-center text-white text-sm text-center z-20 backdrop-blur-[2px] transition-all duration-300 overflow-y-auto
+              ${showDesc ? 'opacity-100 pointer-events-auto' : 'opacity-0 md:group-hover/img:opacity-100 pointer-events-none md:pointer-events-auto'}
+            `}
+          >
+            <p className="leading-relaxed drop-shadow-md font-medium">{product.description}</p>
+          </div>
+        )}
       </div>
 
       {/* Product Info */}
