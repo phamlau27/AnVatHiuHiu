@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { CartItem } from "@/types";
+import type { CartItem, Product } from "@/types";
 
 interface CartStore {
   items: CartItem[];
@@ -11,6 +11,7 @@ interface CartStore {
   selectAll: (selected: boolean) => void;
   clearCart: () => void;
   clearSelectedCart: () => void;
+  syncItems: (products: Product[]) => void;
   getTotalPrice: () => number;
   getTotalItems: () => number;
   getSelectedItemsCount: () => number;
@@ -71,6 +72,24 @@ export const useCartStore = create<CartStore>()(
 
       clearCart: () => set({ items: [] }),
       clearSelectedCart: () => set({ items: get().items.filter(i => !i.selected) }),
+
+      syncItems: (products) => {
+        const productMap = new Map(products.map(p => [p.id, p]));
+        set({
+          items: get().items.map(item => {
+            const fresh = productMap.get(item.productId);
+            if (fresh) {
+              return {
+                ...item,
+                name: fresh.name,
+                price: fresh.price,
+                imageUrl: fresh.imageUrl
+              };
+            }
+            return item;
+          })
+        });
+      },
 
       getTotalPrice: () =>
         get().items.filter(i => i.selected).reduce((sum, i) => sum + i.price * i.quantity, 0),

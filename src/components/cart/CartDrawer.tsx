@@ -34,6 +34,9 @@ export default function CartDrawer() {
         const validIds = new Set(validProducts.map(p => p.id));
         const invalidIds = productIds.filter(id => !validIds.has(id));
         
+        // Update local store with fresh data (price, name, etc.)
+        useCartStore.getState().syncItems(validProducts);
+        
         setInvalidProductIds(invalidIds);
         setIsValidating(false);
         
