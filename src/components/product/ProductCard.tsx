@@ -34,7 +34,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.04, 0.6), duration: 0.35, ease: "easeOut" }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 group relative border border-border/40"
+      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 group relative border border-border/40 flex flex-col h-full"
     >
       {/* Promo Badge */}
       {product.isPromotion && (
@@ -44,7 +44,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       )}
 
       {/* Product Image */}
-      <div className="aspect-square bg-surface overflow-hidden relative">
+      <div className="aspect-square bg-surface overflow-hidden relative shrink-0">
         <Image
           src={product.imageUrl}
           alt={product.name}
@@ -57,34 +57,36 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       </div>
 
       {/* Product Info */}
-      <div className="p-3">
-        <h3 className="text-sm font-semibold text-text-primary line-clamp-2 leading-tight mb-2 min-h-[2.5rem]">
+      <div className="p-3 flex flex-col flex-grow">
+        <h3 className="text-sm font-semibold text-text-primary leading-tight mb-2">
           {product.name}
         </h3>
 
-        {/* Price */}
-        <div className="flex items-baseline gap-1.5 mb-2.5">
-          <span className="text-base font-bold text-teal-700">
-            {formatPrice(product.price)}
-          </span>
-          {product.isPromotion && product.promoPrice && (
-            <span className="text-xs text-text-secondary line-through">
-              {formatPrice(product.promoPrice)}
+        <div className="mt-auto flex flex-col">
+          {/* Price */}
+          <div className="flex items-baseline gap-1.5 mb-2.5">
+            <span className="text-base font-bold text-teal-700">
+              {formatPrice(product.price)}
             </span>
-          )}
-        </div>
+            {product.isPromotion && product.promoPrice && (
+              <span className="text-xs text-text-secondary line-through">
+                {formatPrice(product.promoPrice)}
+              </span>
+            )}
+          </div>
 
-        {/* Single Add to Cart Button */}
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={handleAddToCart}
-          className="w-full py-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 active:scale-95 text-white text-sm font-bold rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-          </svg>
-          Thêm vào giỏ
-        </motion.button>
+          {/* Single Add to Cart Button */}
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={handleAddToCart}
+            className="w-full py-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 active:scale-95 text-white text-sm font-bold rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            Thêm vào giỏ
+          </motion.button>
+        </div>
       </div>
     </motion.div>
   );

@@ -44,7 +44,7 @@ export default function CartItem({ item }: CartItemProps) {
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-semibold text-text-primary truncate">
+        <h4 className="text-sm font-semibold text-text-primary">
           {item.name}
         </h4>
         <p className="text-sm font-bold text-mint-dark mt-0.5">
