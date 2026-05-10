@@ -9,6 +9,7 @@ import { showToast } from "@/components/ui/Toast";
 import { formatPrice } from "@/data/mockProducts";
 import type { Order, OrderItem } from "@/types";
 import Link from "next/link";
+import { useCartStore } from "@/stores/cartStore";
 
 const PICKUP_ADDRESS =
   "23 Nguyễn Thái Học, Phường Tân Thành, Quận Tân Phú, TP.HCM";
@@ -77,6 +78,34 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
 
   function removeItem(productId: string) {
     setItems(prev => prev.filter(item => item.productId !== productId));
+  }
+
+  function handleAddFromCart() {
+    const cartItems = useCartStore.getState().items.filter(i => i.selected);
+    if (cartItems.length === 0) {
+      showToast("Vui lòng tick chọn các món trong giỏ hàng trước!", "error");
+      return;
+    }
+
+    setItems(prev => {
+      const newItems = [...prev];
+      cartItems.forEach(cartItem => {
+        const existing = newItems.find(i => i.productId === cartItem.productId);
+        if (existing) {
+          existing.quantity += cartItem.quantity;
+        } else {
+          newItems.push({
+            productId: cartItem.productId,
+            name: cartItem.name,
+            price: cartItem.price,
+            quantity: cartItem.quantity,
+          });
+        }
+      });
+      return newItems;
+    });
+
+    showToast(`Đã gộp ${cartItems.length} món từ Giỏ hàng!`, "success");
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -271,8 +300,15 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
 
           {/* Order Items - Editable */}
           <div className="bg-white rounded-2xl border border-border/50 overflow-hidden">
-            <div className="px-4 py-3 bg-surface border-b border-border/50">
+            <div className="px-4 py-3 bg-surface border-b border-border/50 flex items-center justify-between">
               <h3 className="font-semibold text-sm">📦 Sản phẩm trong đơn</h3>
+              <button
+                type="button"
+                onClick={handleAddFromCart}
+                className="text-xs font-bold text-mint-dark bg-mint/10 hover:bg-mint/20 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+              >
+                <span>🛒</span> Thêm từ Giỏ hàng
+              </button>
             </div>
 
             {items.length === 0 ? (

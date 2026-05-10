@@ -8,9 +8,10 @@ import type { CartItem as CartItemType } from "@/types";
 
 interface CartItemProps {
   item: CartItemType;
+  isInvalid?: boolean;
 }
 
-export default function CartItem({ item }: CartItemProps) {
+export default function CartItem({ item, isInvalid = false }: CartItemProps) {
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
 
@@ -25,9 +26,10 @@ export default function CartItem({ item }: CartItemProps) {
       <div className="flex items-center justify-center">
         <input
           type="checkbox"
-          checked={item.selected}
+          checked={item.selected && !isInvalid}
+          disabled={isInvalid}
           onChange={() => useCartStore.getState().toggleSelectItem(item.productId)}
-          className="w-5 h-5 rounded accent-mint cursor-pointer"
+          className="w-5 h-5 rounded accent-mint cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
 
@@ -43,17 +45,22 @@ export default function CartItem({ item }: CartItemProps) {
       </div>
 
       {/* Info */}
-      <div className="flex-1 min-w-0">
+      <div className={`flex-1 min-w-0 ${isInvalid ? "opacity-60 grayscale" : ""}`}>
         <h4 className="text-sm font-semibold text-text-primary">
           {item.name}
         </h4>
         <p className="text-sm font-bold text-mint-dark mt-0.5">
           {formatPrice(item.price)}
         </p>
+        {isInvalid && (
+          <p className="text-xs font-bold text-red-500 mt-1">
+            Sản phẩm không còn tồn tại
+          </p>
+        )}
 
         {/* Quantity Controls */}
         <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center gap-2 bg-white rounded-lg">
+          <div className={`flex items-center gap-2 bg-white rounded-lg ${isInvalid ? "opacity-50 pointer-events-none" : ""}`}>
             <button
               onClick={() => updateQuantity(item.productId, item.quantity - 1)}
               className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-border transition-colors text-text-secondary"
