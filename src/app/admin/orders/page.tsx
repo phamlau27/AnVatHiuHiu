@@ -9,7 +9,6 @@ import { Timestamp } from "firebase/firestore";
 import Modal from "@/components/ui/Modal";
 import Link from "next/link";
 
-import { useRouter } from "next/navigation";
 
 function formatDate(timestamp: Timestamp | undefined): string {
   if (!timestamp || !(timestamp instanceof Timestamp)) return "N/A";
@@ -23,7 +22,6 @@ function formatDate(timestamp: Timestamp | undefined): string {
 }
 
 export default function AdminOrdersPage() {
-  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "new" | "processing" | "completed" | "cancelled">("new");
@@ -165,13 +163,7 @@ export default function AdminOrdersPage() {
                     </td>
                     <td className="px-5 py-3 text-center">
                       <div className="flex justify-center gap-2">
-                        <Link
-                          href={`/orders/edit/${order.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors"
-                        >
-                          ✏️ Sửa
-                        </Link>
+
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -225,15 +217,7 @@ export default function AdminOrdersPage() {
                       <option value="completed">✅ Xong</option>
                       <option value="cancelled">❌ Hủy</option>
                     </select>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/orders/edit/${order.id}`);
-                      }}
-                      className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-md font-medium"
-                    >
-                      ✏️
-                    </button>
+
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
