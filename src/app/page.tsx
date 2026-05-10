@@ -36,20 +36,20 @@ const FIREWORK_SNACKS = [
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string | undefined>();
   const [products, setProducts] = useState<Product[]>([]);
+  const [allFetchedProducts, setAllFetchedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-  const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
 
   const fetchProducts = useCallback(async (category?: string) => {
     setLoading(true);
     setProducts([]);
-    setLastDoc(null);
+    setAllFetchedProducts([]);
     try {
       const result = await getProductsPaginated({ category, pageSize: PAGE_SIZE });
-      setProducts(result.products);
-      setLastDoc(result.lastDoc);
-      setHasMore(result.hasMore);
+      setAllFetchedProducts(result.products);
+      setProducts(result.products.slice(0, PAGE_SIZE));
+      setHasMore(result.products.length > PAGE_SIZE);
     } catch (error) {
       console.error("Failed to fetch products:", error);
     } finally {
@@ -65,14 +65,14 @@ export default function HomePage() {
     if (!hasMore || loadingMore) return;
     setLoadingMore(true);
     try {
-      const result = await getProductsPaginated({
-        category: activeCategory,
-        pageSize: PAGE_SIZE,
-        lastDoc,
-      });
-      setProducts((prev) => [...prev, ...result.products]);
-      setLastDoc(result.lastDoc);
-      setHasMore(result.hasMore);
+      // Simulate slight network delay for better UX
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      
+      const currentLength = products.length;
+      const nextBatch = allFetchedProducts.slice(currentLength, currentLength + PAGE_SIZE);
+      
+      setProducts((prev) => [...prev, ...nextBatch]);
+      setHasMore(currentLength + PAGE_SIZE < allFetchedProducts.length);
     } catch (error) {
       console.error("Failed to load more:", error);
     } finally {
