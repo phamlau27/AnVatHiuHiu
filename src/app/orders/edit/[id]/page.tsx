@@ -10,6 +10,7 @@ import { formatPrice } from "@/data/mockProducts";
 import type { Order, OrderItem } from "@/types";
 import Link from "next/link";
 import { useCartStore } from "@/stores/cartStore";
+import { useUIStore } from "@/stores/uiStore";
 
 const PICKUP_ADDRESS =
   "23 Nguyễn Thái Học, Phường Tân Thành, Quận Tân Phú, TP.HCM";
@@ -18,6 +19,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
   const { id: orderId } = use(params);
   const router = useRouter();
   const mounted = useHasMounted();
+  const openCart = useUIStore(s => s.openCart);
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -304,7 +306,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
               <h3 className="font-semibold text-sm">📦 Sản phẩm trong đơn</h3>
               <button
                 type="button"
-                onClick={handleAddFromCart}
+                onClick={() => openCart("edit-order", handleAddFromCart)}
                 className="text-xs font-bold text-mint-dark bg-mint/10 hover:bg-mint/20 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
               >
                 <span>🛒</span> Thêm từ Giỏ hàng

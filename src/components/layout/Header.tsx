@@ -90,7 +90,7 @@ export default function Header() {
 
           {/* Cart */}
           <button
-            onClick={openCart}
+            onClick={() => openCart()}
             className="relative p-2.5 rounded-xl hover:bg-teal-50 transition-colors"
             aria-label="Giỏ hàng"
           >

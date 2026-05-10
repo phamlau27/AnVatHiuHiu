@@ -14,6 +14,8 @@ export default function CartDrawer() {
   const mounted = useHasMounted();
   const isOpen = useUIStore((s) => s.isCartOpen);
   const closeCart = useUIStore((s) => s.closeCart);
+  const cartMode = useUIStore((s) => s.cartMode);
+  const onCartSubmit = useUIStore((s) => s.onCartSubmit);
   const items = useCartStore((s) => s.items);
   const totalItems = useCartStore((s) => s.getTotalItems());
   const totalPrice = useCartStore((s) => s.getTotalPrice());
@@ -154,20 +156,39 @@ export default function CartDrawer() {
                     {formatPrice(totalPrice)}
                   </span>
                 </div>
-                <Link
-                  href="/checkout"
-                  onClick={(e) => {
-                    if (selectedCount === 0) e.preventDefault();
-                    else closeCart();
-                  }}
-                  className={`block w-full py-3 text-center rounded-xl font-bold transition-colors ${
-                    selectedCount > 0
-                      ? "bg-mint hover:bg-mint-dark text-white"
-                      : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                  }`}
-                >
-                  Đặt hàng ({selectedCount} món)
-                </Link>
+                {cartMode === "edit-order" ? (
+                  <button
+                    onClick={() => {
+                      if (selectedCount > 0 && onCartSubmit) {
+                        onCartSubmit();
+                        closeCart();
+                      }
+                    }}
+                    disabled={selectedCount === 0}
+                    className={`block w-full py-3 text-center rounded-xl font-bold transition-colors ${
+                      selectedCount > 0
+                        ? "bg-mint hover:bg-mint-dark text-white"
+                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    }`}
+                  >
+                    Thêm món ({selectedCount})
+                  </button>
+                ) : (
+                  <Link
+                    href="/checkout"
+                    onClick={(e) => {
+                      if (selectedCount === 0) e.preventDefault();
+                      else closeCart();
+                    }}
+                    className={`block w-full py-3 text-center rounded-xl font-bold transition-colors ${
+                      selectedCount > 0
+                        ? "bg-mint hover:bg-mint-dark text-white"
+                        : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    }`}
+                  >
+                    Đặt hàng ({selectedCount} món)
+                  </Link>
+                )}
               </div>
             )}
           </motion.div>

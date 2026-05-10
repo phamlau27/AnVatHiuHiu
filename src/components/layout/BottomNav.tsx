@@ -65,7 +65,7 @@ export default function BottomNav() {
 
         {/* Cart */}
         <button
-          onClick={openCart}
+          onClick={() => openCart()}
           className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors text-text-secondary relative"
         >
           <div className="relative">
