@@ -109,6 +109,22 @@ export function subscribeToProductsByIds(ids: string[], callback: (products: Pro
   return () => unsubscribers.forEach(unsub => unsub());
 }
 
+/**
+ * Real-time listener for products with filters
+ */
+export function subscribeToProducts(filters: { category?: string; promoOnly?: boolean }, callback: (products: Product[]) => void) {
+  let q = query(collection(db, "products"));
+  if (filters.category) q = query(q, where("category", "==", filters.category));
+  if (filters.promoOnly) q = query(q, where("isPromotion", "==", true));
+  
+  return onSnapshot(q, (snapshot) => {
+    const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+    callback(products);
+  }, (error) => {
+    console.error("Error subscribing to products:", error);
+  });
+}
+
 // Helper to shuffle array
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];

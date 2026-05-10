@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import ProductCard from "@/components/product/ProductCard";
 import CategoryBar from "@/components/product/CategoryBar";
 import { ProductCardSkeleton } from "@/components/ui/Skeleton";
-import { getProductsPaginated } from "@/lib/firestore";
+import { subscribeToProducts } from "@/lib/firestore";
+import { Timestamp } from "firebase/firestore";
 import { CATEGORIES } from "@/types";
 import type { Product } from "@/types";
-import type { DocumentSnapshot } from "firebase/firestore";
 import Link from "next/link";
 
 const PAGE_SIZE = 30;
@@ -40,41 +40,74 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-
-  const fetchProducts = useCallback(async (category?: string) => {
-    setLoading(true);
-    setProducts([]);
-    setAllFetchedProducts([]);
-    try {
-      const result = await getProductsPaginated({ category, pageSize: PAGE_SIZE });
-      setAllFetchedProducts(result.products);
-      setProducts(result.products.slice(0, PAGE_SIZE));
-      setHasMore(result.products.length > PAGE_SIZE);
-    } catch (error) {
-      console.error("Failed to fetch products:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [shuffledOrder, setShuffledOrder] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchProducts(activeCategory);
-  }, [activeCategory, fetchProducts]);
+    setLoading(true);
+    const unsub = subscribeToProducts({ category: activeCategory }, (fetched) => {
+      if (!activeCategory) {
+        // Logic for stable shuffle in "All" view
+        setShuffledOrder(prevOrder => {
+          let newOrder = [...prevOrder];
+          
+          if (newOrder.length === 0) {
+            // Initial shuffle
+            newOrder = fetched.map(p => p.id).sort(() => Math.random() - 0.5);
+          } else {
+            // Maintain existing order, handle additions/deletions
+            const fetchedIds = new Set(fetched.map(p => p.id));
+            const existingIdsInOrder = new Set(newOrder);
+            
+            // 1. Add new products to the top
+            const additions = fetched.filter(p => !existingIdsInOrder.has(p.id)).map(p => p.id);
+            if (additions.length > 0) {
+              newOrder = [...additions, ...newOrder];
+            }
+            
+            // 2. Remove deleted products
+            newOrder = newOrder.filter(id => fetchedIds.has(id));
+          }
+
+          const productMap = new Map(fetched.map(p => [p.id, p]));
+          const orderedProducts = newOrder.map(id => productMap.get(id)!).filter(Boolean);
+          
+          setAllFetchedProducts(orderedProducts);
+          setProducts(prev => {
+            const currentLimit = Math.max(prev.length, PAGE_SIZE);
+            return orderedProducts.slice(0, currentLimit);
+          });
+          setHasMore(orderedProducts.length > Math.max(products.length, PAGE_SIZE));
+          
+          return newOrder;
+        });
+      } else {
+        // Simple date sort for category view
+        const sorted = fetched.sort((a, b) => {
+          const aTime = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
+          const bTime = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
+          return bTime - aTime;
+        });
+        setAllFetchedProducts(sorted);
+        setProducts(prev => sorted.slice(0, Math.max(prev.length, PAGE_SIZE)));
+        setHasMore(sorted.length > Math.max(products.length, PAGE_SIZE));
+        setShuffledOrder([]); // Reset shuffle order when switching category
+      }
+      setLoading(false);
+    });
+
+    return () => unsub();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCategory]);
 
   const loadMore = async () => {
     if (!hasMore || loadingMore) return;
     setLoadingMore(true);
     try {
-      // Simulate slight network delay for better UX
       await new Promise((resolve) => setTimeout(resolve, 400));
-      
       const currentLength = products.length;
       const nextBatch = allFetchedProducts.slice(currentLength, currentLength + PAGE_SIZE);
-      
       setProducts((prev) => [...prev, ...nextBatch]);
       setHasMore(currentLength + PAGE_SIZE < allFetchedProducts.length);
-    } catch (error) {
-      console.error("Failed to load more:", error);
     } finally {
       setLoadingMore(false);
     }
