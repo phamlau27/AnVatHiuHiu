@@ -7,7 +7,7 @@ import { useUIStore } from "@/stores/uiStore";
 import { useCartStore } from "@/stores/cartStore";
 import { useOrderHistoryStore } from "@/stores/orderHistoryStore";
 import { useHasMounted } from "@/hooks/useHasMounted";
-import { getOrdersByIds } from "@/lib/firestore";
+import { subscribeToOrdersByIds } from "@/lib/firestore";
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -17,18 +17,19 @@ export default function BottomNav() {
   const orderIds = useOrderHistoryStore((s) => s.orderIds);
   const [activeOrderCount, setActiveOrderCount] = useState(0);
 
-  // Fetch active order count (new + processing)
+  // Fetch active order count (new + processing) real-time
   useEffect(() => {
     if (!mounted || orderIds.length === 0) {
       setActiveOrderCount(0);
       return;
     }
-    getOrdersByIds(orderIds).then((orders) => {
+    const unsub = subscribeToOrdersByIds(orderIds, (orders) => {
       const count = orders.filter(
         (o) => o.status === "new" || o.status === "processing"
       ).length;
       setActiveOrderCount(count);
-    }).catch(() => {});
+    });
+    return () => unsub();
   }, [mounted, orderIds]);
 
   // Hide bottom nav on admin pages

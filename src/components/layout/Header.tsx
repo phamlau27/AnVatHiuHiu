@@ -7,6 +7,7 @@ import { useCartStore } from "@/stores/cartStore";
 import { useOrderHistoryStore } from "@/stores/orderHistoryStore";
 import { useHasMounted } from "@/hooks/useHasMounted";
 import { motion } from "framer-motion";
+import { subscribeToOrdersByIds } from "@/lib/firestore";
 
 export default function Header() {
   const mounted = useHasMounted();
@@ -20,22 +21,10 @@ export default function Header() {
       setActiveOrderCount(0);
       return;
     }
-    let isSubscribed = true;
-    async function checkOrders() {
-      try {
-        const { getOrdersByIds } = await import("@/lib/firestore");
-        const orders = await getOrdersByIds(orderIds);
-        if (isSubscribed) {
-          setActiveOrderCount(orders.filter(o => o.status === "new" || o.status === "processing").length);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    checkOrders();
-    return () => {
-      isSubscribed = false;
-    };
+    const unsub = subscribeToOrdersByIds(orderIds, (orders) => {
+      setActiveOrderCount(orders.filter(o => o.status === "new" || o.status === "processing").length);
+    });
+    return () => unsub();
   }, [mounted, orderIds]);
 
   return (
