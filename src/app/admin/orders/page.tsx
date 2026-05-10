@@ -307,11 +307,12 @@ export default function AdminOrdersPage() {
                   </div>
                 ))}
               </div>
-            <div className="border-t border-border mt-3 pt-3 flex justify-between">
-              <span className="font-bold">Tổng cộng</span>
-              <span className="font-bold text-lg text-mint-dark">
-                {formatPrice(selectedOrder.totalPrice)}
-              </span>
+              <div className="border-t border-border mt-3 pt-3 flex justify-between">
+                <span className="font-bold">Tổng cộng</span>
+                <span className="font-bold text-lg text-mint-dark">
+                  {formatPrice(selectedOrder.totalPrice)}
+                </span>
+              </div>
             </div>
             
             <div className="flex gap-3 pt-4 border-t border-border mt-4">
