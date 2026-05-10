@@ -114,10 +114,10 @@ export async function getProductsPaginated(options: {
   const allProducts = snapshotAll.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
   const shuffled = shuffleArray(allProducts);
 
-  // Return the first PAGE_SIZE items. We disable pagination (hasMore: false) 
-  // since the list is randomized and we fetched everything anyway.
+  // Return ALL shuffled items. We disable pagination (hasMore: false) 
+  // since the list is randomized and we want to show all products.
   return { 
-    products: shuffled.slice(0, PAGE_SIZE), 
+    products: shuffled, 
     lastDoc: null, 
     hasMore: false 
   };
