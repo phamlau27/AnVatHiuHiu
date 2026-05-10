@@ -73,6 +73,16 @@ export async function getProducts(filters?: {
   return products;
 }
 
+// Helper to shuffle array
+function shuffleArray<T>(array: T[]): T[] {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+}
+
 // Paginated products with startAfter cursor
 export async function getProductsPaginated(options: {
   category?: string;
@@ -82,7 +92,6 @@ export async function getProductsPaginated(options: {
   const PAGE_SIZE = options.pageSize ?? 30;
 
   // When filtering by category, fetch ALL matching docs and sort client-side
-  // (avoids requiring a composite Firestore index for category + createdAt)
   if (options.category) {
     const q = query(
       collection(db, "products"),
@@ -99,20 +108,19 @@ export async function getProductsPaginated(options: {
     return { products, lastDoc: null, hasMore: false };
   }
 
-  // No category filter — use server-side pagination with orderBy
-  let q = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(PAGE_SIZE + 1));
+  // No category filter — fetch all, shuffle, and return a fixed random batch to create a dynamic homepage
+  const qAll = query(collection(db, "products"));
+  const snapshotAll = await getDocs(qAll);
+  const allProducts = snapshotAll.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
+  const shuffled = shuffleArray(allProducts);
 
-  if (options.lastDoc) {
-    q = query(collection(db, "products"), orderBy("createdAt", "desc"), startAfter(options.lastDoc), limit(PAGE_SIZE + 1));
-  }
-
-  const snapshot = await getDocs(q);
-  const hasMore = snapshot.docs.length > PAGE_SIZE;
-  const docs = hasMore ? snapshot.docs.slice(0, PAGE_SIZE) : snapshot.docs;
-  const products = docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
-  const lastDoc = docs.length > 0 ? docs[docs.length - 1] : null;
-
-  return { products, lastDoc, hasMore };
+  // Return the first PAGE_SIZE items. We disable pagination (hasMore: false) 
+  // since the list is randomized and we fetched everything anyway.
+  return { 
+    products: shuffled.slice(0, PAGE_SIZE), 
+    lastDoc: null, 
+    hasMore: false 
+  };
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
