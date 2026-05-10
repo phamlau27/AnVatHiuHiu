@@ -105,9 +105,6 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       {product.description && (
         <Modal isOpen={showDesc} onClose={() => setShowDesc(false)} title={product.name}>
           <div className="space-y-4">
-            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-surface">
-              <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
-            </div>
             <div className="flex items-center justify-between">
               <span className="text-xl font-bold text-teal-700">{formatPrice(product.price)}</span>
             </div>
