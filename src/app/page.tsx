@@ -13,27 +13,25 @@ import Link from "next/link";
 
 const PAGE_SIZE = 30;
 
-/* ── Layered floating snack objects ───────────────────
-   depth: "front" | "mid" | "back" controls scale, blur, opacity
+/* ── Antigravity Firework Snacks ───────────────────
+   Snack emojis exploding outwards from center
    ──────────────────────────────────────────────────── */
-const SNACK_OBJECTS = [
-  // Back layer — faded, small, slow
-  { emoji: "🍬", left: "5%",  top: "18%", depth: "back",  delay: 0,   dur: 6.0, range: 10 },
-  { emoji: "🧁", left: "88%", top: "22%", depth: "back",  delay: 1.0, dur: 5.5, range: 8  },
-  { emoji: "🫘", left: "75%", top: "78%", depth: "back",  delay: 2.0, dur: 6.2, range: 9  },
-  // Mid layer — normal size
-  { emoji: "🍪", left: "15%", top: "60%", depth: "mid",   delay: 0.3, dur: 4.5, range: 14 },
-  { emoji: "🥜", left: "70%", top: "45%", depth: "mid",   delay: 1.5, dur: 4.0, range: 12 },
-  { emoji: "🍡", left: "50%", top: "15%", depth: "mid",   delay: 0.8, dur: 4.8, range: 15 },
-  // Front layer — large, sharp, fast
-  { emoji: "🍿", left: "25%", top: "35%", depth: "front", delay: 0.5, dur: 3.5, range: 18 },
+const FIREWORK_SNACKS = [
+  { emoji: "🍬", endX: "35vw", endY: "-40vh", size: "text-4xl", delay: 0 },
+  { emoji: "🧁", endX: "45vw", endY: "20vh", size: "text-5xl", delay: 0.5 },
+  { emoji: "🫘", endX: "-35vw", endY: "-30vh", size: "text-3xl", delay: 1 },
+  { emoji: "🍪", endX: "-50vw", endY: "15vh", size: "text-6xl", delay: 1.5 },
+  { emoji: "🥜", endX: "15vw", endY: "-50vh", size: "text-4xl", delay: 2 },
+  { emoji: "🍡", endX: "-20vw", endY: "40vh", size: "text-5xl", delay: 2.5 },
+  { emoji: "🍿", endX: "50vw", endY: "-10vh", size: "text-6xl", delay: 0.2 },
+  { emoji: "🍭", endX: "-55vw", endY: "-20vh", size: "text-3xl", delay: 0.7 },
+  { emoji: "🍫", endX: "25vw", endY: "45vh", size: "text-4xl", delay: 1.2 },
+  { emoji: "🍩", endX: "-25vw", endY: "35vh", size: "text-5xl", delay: 1.7 },
+  { emoji: "🍟", endX: "40vw", endY: "-25vh", size: "text-3xl", delay: 2.2 },
+  { emoji: "🥨", endX: "-45vw", endY: "-45vh", size: "text-5xl", delay: 2.7 },
+  { emoji: "🍔", endX: "0vw", endY: "-55vh", size: "text-6xl", delay: 0.9 },
+  { emoji: "🍕", endX: "0vw", endY: "50vh", size: "text-5xl", delay: 1.4 },
 ];
-
-const DEPTH_STYLES = {
-  back:  { scale: 0.6, opacity: 0.35, blur: "blur-[1px]", size: "text-3xl" },
-  mid:   { scale: 0.85, opacity: 0.65, blur: "",          size: "text-4xl md:text-5xl" },
-  front: { scale: 1.0,  opacity: 0.9,  blur: "",          size: "text-5xl md:text-6xl" },
-};
 
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string | undefined>();
@@ -93,115 +91,93 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* ════════════════════════════════════════════════════
-          HERO SECTION — mobile-first, layered depth
+          HERO SECTION — Antigravity Mobile-first Web Style
          ════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden grain-overlay">
+      <section className="relative overflow-hidden grain-overlay min-h-[85vh] flex items-center justify-center">
         {/* ── Rich gradient bg ── */}
         <div className="absolute inset-0 bg-gradient-to-b from-teal-50 via-white to-background md:bg-gradient-to-br md:from-teal-50/80 md:via-[#f0fdfa] md:to-white" />
 
         {/* ── Blur blobs ── */}
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-gradient-to-br from-teal-300/25 to-cyan-200/20 rounded-full blur-[120px]" />
-        <div className="absolute top-1/3 -left-20 w-72 h-72 bg-teal-400/15 rounded-full blur-[100px]" />
-        <div className="absolute bottom-0 right-0 w-80 h-80 bg-emerald-100/25 rounded-full blur-[100px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-teal-300/20 to-cyan-200/15 rounded-full blur-[100px]" />
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-100/30 rounded-full blur-[100px]" />
+
+        {/* ── Antigravity Firework Snacks ── */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 pointer-events-none z-0">
+          {FIREWORK_SNACKS.map((snack, i) => (
+            <motion.span
+              key={i}
+              className={`absolute top-0 left-0 -ml-4 -mt-4 ${snack.size} select-none`}
+              initial={{ x: 0, y: "10vh", opacity: 0, scale: 0 }}
+              animate={{
+                x: snack.endX,
+                y: snack.endY,
+                opacity: [0, 1, 1, 0],
+                scale: [0, 1.2, 1, 0.6],
+                rotate: i % 2 === 0 ? 180 : -180,
+              }}
+              transition={{
+                repeat: Infinity,
+                duration: 5, 
+                delay: snack.delay,
+                ease: "easeOut",
+              }}
+            >
+              {snack.emoji}
+            </motion.span>
+          ))}
+        </div>
 
         {/* ── Content ── */}
-        <div className="relative max-w-5xl mx-auto px-5 pt-10 pb-6 md:py-20">
-          <div className="flex flex-col md:flex-row items-center gap-6 md:gap-16">
+        <div className="relative z-10 w-full max-w-4xl mx-auto px-5 text-center mt-8 md:mt-0">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            {/* Brand title - Massive and dominant (fixed line-height for diacritics) */}
+            <h1 className="text-[clamp(3.5rem,10vw,7rem)] leading-[1.2] pb-2 font-black tracking-tight mb-3">
+              <span className="hero-brand block">Ăn Vặt</span>
+              <span className="hero-brand-accent block">Híu Híu</span>
+            </h1>
 
-            {/* ────── LEFT: Text + CTA (mobile: centered) ────── */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="flex-1 text-center md:text-left z-10 order-2 md:order-1"
-            >
-              {/* Brand title */}
-              <h2 className="text-[2.5rem] leading-[1.05] sm:text-5xl md:text-6xl font-black tracking-tight mb-3">
-                <span className="hero-brand">Ăn Vặt</span>
-                <br />
-                <span className="hero-brand-accent">Híu Híu</span>
-              </h2>
+            {/* Tagline — clean, secondary */}
+            <p className="text-gray-500 text-lg sm:text-xl md:text-2xl max-w-lg mx-auto mb-8 font-semibold">
+              Ăn là ghiền, đặt là có ngay.
+            </p>
 
-              {/* Tagline — short, catchy */}
-              <p className="text-gray-400 text-sm sm:text-base md:text-lg max-w-sm mx-auto md:mx-0 mb-7 font-medium">
-                Đặt snack ngon — giao tận tay bạn 🚀
-              </p>
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <motion.div whileTap={{ scale: 0.93 }}>
+                <Link
+                  href="/search"
+                  className="cta-glow inline-flex items-center justify-center gap-2.5 w-[200px] sm:w-auto px-8 py-4 bg-gradient-to-r from-teal-500 via-teal-500 to-teal-600 text-white font-bold text-base rounded-full shadow-xl shadow-teal-500/20 hover:shadow-2xl hover:shadow-teal-500/30 active:shadow-lg transition-all"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                  Tìm món ngon
+                </Link>
+              </motion.div>
 
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
-                <motion.div whileTap={{ scale: 0.93 }}>
-                  <Link
-                    href="/search"
-                    className="cta-glow inline-flex items-center justify-center gap-2.5 w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-teal-500 via-teal-500 to-teal-600 text-white font-bold text-base rounded-2xl shadow-xl shadow-teal-500/20 hover:shadow-2xl hover:shadow-teal-500/30 active:shadow-lg transition-all"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                    </svg>
-                    Tìm món ngon
-                  </Link>
-                </motion.div>
-
-                <motion.div whileTap={{ scale: 0.93 }}>
-                  <button
-                    onClick={() => document.getElementById("product-section")?.scrollIntoView({ behavior: "smooth" })}
-                    className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 bg-white/80 backdrop-blur-sm text-teal-700 font-semibold text-base rounded-2xl border border-teal-200/80 hover:bg-white hover:border-teal-300 active:bg-teal-50 transition-all shadow-sm"
-                  >
-                    Xem sản phẩm
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                </motion.div>
-              </div>
-            </motion.div>
-
-            {/* ────── RIGHT: Floating Snack Visuals ────── */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.7, delay: 0.15 }}
-              className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 shrink-0 order-1 md:order-2"
-            >
-              {/* Ambient glow behind objects */}
-              <div className="absolute inset-6 bg-gradient-to-br from-teal-200/30 via-cyan-100/20 to-amber-100/25 rounded-full blur-3xl" />
-
-              {/* Layered floating snacks */}
-              {SNACK_OBJECTS.map((snack, i) => {
-                const depth = DEPTH_STYLES[snack.depth as keyof typeof DEPTH_STYLES];
-                return (
-                  <motion.span
-                    key={i}
-                    className={`absolute ${depth.size} ${depth.blur} select-none cursor-pointer`}
-                    style={{
-                      left: snack.left,
-                      top: snack.top,
-                      opacity: depth.opacity,
-                      transform: `scale(${depth.scale})`,
-                    }}
-                    animate={{
-                      y: [0, -snack.range, 0],
-                      rotate: [0, i % 2 === 0 ? 6 : -6, 0],
-                    }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: snack.dur,
-                      delay: snack.delay,
-                      ease: "easeInOut",
-                    }}
-                    whileHover={{ scale: depth.scale * 1.25, rotate: 12, transition: { duration: 0.2 } }}
-                    whileTap={{ scale: depth.scale * 0.9 }}
-                  >
-                    {snack.emoji}
-                  </motion.span>
-                );
-              })}
-            </motion.div>
-          </div>
+              <motion.div whileTap={{ scale: 0.93 }}>
+                <button
+                  onClick={() => document.getElementById("product-section")?.scrollIntoView({ behavior: "smooth" })}
+                  className="inline-flex items-center justify-center gap-2 w-[200px] sm:w-auto px-8 py-4 bg-white/80 backdrop-blur-sm text-teal-700 font-semibold text-base rounded-full border border-teal-200/80 hover:bg-white hover:border-teal-300 active:bg-teal-50 transition-all shadow-sm"
+                >
+                  Xem sản phẩm
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </motion.div>
+            </div>
+          </motion.div>
         </div>
 
         {/* Bottom fade into content */}
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent z-10" />
       </section>
+
 
       {/* ════════════════════════════════════════════════════
           PRODUCTS SECTION
