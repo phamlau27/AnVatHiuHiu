@@ -1,12 +1,11 @@
-"use client";
-
 import { useState } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useCartStore } from "@/stores/cartStore";
 import { showToast } from "@/components/ui/Toast";
 import { formatPrice } from "@/data/mockProducts";
 import type { Product } from "@/types";
+import Modal from "@/components/ui/Modal";
 
 interface ProductCardProps {
   product: Product;
@@ -34,85 +33,102 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
     if (product.description) {
-      setShowDesc(!showDesc);
+      setShowDesc(true);
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.04, 0.6), duration: 0.35, ease: "easeOut" }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 group relative border border-border/40 flex flex-col h-full"
-    >
-      {/* Promo Badge */}
-      {product.isPromotion && (
-        <div className="absolute top-2 left-2 z-10 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
-          🔥 KM
-        </div>
-      )}
-
-      {/* Product Image */}
-      <div 
-        className="aspect-square bg-surface overflow-hidden relative shrink-0 cursor-pointer group/img"
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: Math.min(index * 0.04, 0.6), duration: 0.35, ease: "easeOut" }}
+        whileHover={{ y: -4, transition: { duration: 0.2 } }}
+        className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 group relative border border-border/40 flex flex-col h-full cursor-pointer"
         onClick={handleImageClick}
-        onMouseLeave={() => setShowDesc(false)}
       >
-        <Image
-          src={product.imageUrl}
-          alt={product.name}
-          fill
-          unoptimized
-          className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
-          priority={index < 4}
-        />
-
-        {/* Description Overlay */}
-        {product.description && (
-          <div 
-            className={`absolute inset-0 bg-black/80 p-4 flex items-center justify-center text-white text-sm text-center z-20 backdrop-blur-[2px] transition-all duration-300 overflow-y-auto
-              ${showDesc ? 'opacity-100 pointer-events-auto' : 'opacity-0 md:group-hover/img:opacity-100 pointer-events-none md:pointer-events-auto'}
-            `}
-          >
-            <p className="leading-relaxed drop-shadow-md font-medium">{product.description}</p>
+        {/* Promo Badge */}
+        {product.isPromotion && (
+          <div className="absolute top-2 left-2 z-10 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+            🔥 KM
           </div>
         )}
-      </div>
 
-      {/* Product Info */}
-      <div className="p-3 flex flex-col flex-grow">
-        <h3 className="text-sm font-semibold text-text-primary leading-tight mb-2">
-          {product.name}
-        </h3>
-
-        <div className="mt-auto flex flex-col">
-          {/* Price */}
-          <div className="flex items-baseline gap-1.5 mb-2.5">
-            <span className="text-base font-bold text-teal-700">
-              {formatPrice(product.price)}
-            </span>
-            {product.isPromotion && product.promoPrice && (
-              <span className="text-xs text-text-secondary line-through">
-                {formatPrice(product.promoPrice)}
-              </span>
-            )}
-          </div>
-
-          {/* Single Add to Cart Button */}
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={handleAddToCart}
-            className="w-full py-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 active:scale-95 text-white text-sm font-bold rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-            </svg>
-            Thêm vào giỏ
-          </motion.button>
+        {/* Product Image */}
+        <div className="aspect-square bg-surface overflow-hidden relative shrink-0">
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            unoptimized
+            className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+            priority={index < 4}
+          />
         </div>
-      </div>
-    </motion.div>
+
+        {/* Product Info */}
+        <div className="p-3 flex flex-col flex-grow">
+          <h3 className="text-sm font-semibold text-text-primary leading-tight mb-2">
+            {product.name}
+          </h3>
+
+          <div className="mt-auto flex flex-col">
+            {/* Price */}
+            <div className="flex items-baseline gap-1.5 mb-2.5">
+              <span className="text-base font-bold text-teal-700">
+                {formatPrice(product.price)}
+              </span>
+              {product.isPromotion && product.promoPrice && (
+                <span className="text-xs text-text-secondary line-through">
+                  {formatPrice(product.promoPrice)}
+                </span>
+              )}
+            </div>
+
+            {/* Single Add to Cart Button */}
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleAddToCart}
+              className="w-full py-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 active:scale-95 text-white text-sm font-bold rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+              Thêm vào giỏ
+            </motion.button>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Description Popup Modal */}
+      {product.description && (
+        <Modal isOpen={showDesc} onClose={() => setShowDesc(false)} title={product.name}>
+          <div className="space-y-4">
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-surface">
+              <Image src={product.imageUrl} alt={product.name} fill className="object-cover" unoptimized />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xl font-bold text-teal-700">{formatPrice(product.price)}</span>
+            </div>
+            <p className="text-text-primary leading-relaxed whitespace-pre-wrap text-sm md:text-base">
+              {product.description}
+            </p>
+            <button
+              onClick={(e) => {
+                handleAddToCart(e);
+                setShowDesc(false);
+              }}
+              className="w-full py-3 mt-4 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 active:scale-95 text-white font-bold rounded-xl transition-all shadow-md flex justify-center items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Thêm vào giỏ hàng
+            </button>
+          </div>
+        </Modal>
+      )}
+    </>
   );
 }
