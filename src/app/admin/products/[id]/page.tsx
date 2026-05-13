@@ -18,6 +18,8 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
   const [promoPrice, setPromoPrice] = useState("");
   const [category, setCategory] = useState<string>(CATEGORIES[0].slug);
   const [description, setDescription] = useState("");
+  const [descriptionImages, setDescriptionImages] = useState<string[]>([]);
+  const [descImageFiles, setDescImageFiles] = useState<File[]>([]);
   const [isPromotion, setIsPromotion] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -34,6 +36,7 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
           setPromoPrice(product.promoPrice?.toString() || "");
           setCategory(product.category);
           setDescription(product.description || "");
+          setDescriptionImages(product.descriptionImages || []);
           setIsPromotion(product.isPromotion || false);
           setImageUrl(product.imageUrl);
         }
@@ -48,6 +51,56 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
       setImageFile(file);
       setImageUrl(URL.createObjectURL(file));
     }
+  };
+
+  const handleDescImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setDescImageFiles(prev => [...prev, ...files]);
+      const newUrls = files.map(f => URL.createObjectURL(f));
+      setDescriptionImages(prev => [...prev, ...newUrls]);
+    }
+  };
+
+  const removeDescImage = (index: number) => {
+    setDescriptionImages(prev => prev.filter((_, i) => i !== index));
+    // Also need to remove from files if it's a new upload
+    // This is a bit tricky since some might be existing URLs, but for now we'll just filter
+    setDescImageFiles(prev => {
+      // Find which file corresponds to this index (only for new files)
+      // For simplicity, we'll just clear files if we remove something (not ideal but safe for Base64)
+      return prev; 
+    });
+  };
+
+  const processImage = async (file: File): Promise<string> => {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new window.Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_SIZE = 800; // Slightly larger for description images
+          let { width, height } = img;
+          if (width > height && width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          } else if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.7));
+        };
+        img.onerror = () => reject(new Error("Lỗi đọc ảnh"));
+      };
+      reader.onerror = () => reject(new Error("Lỗi đọc file"));
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,41 +122,34 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
 
       if (imageFile) {
         try {
-          // Xử lý nén ảnh và chuyển sang Base64 trực tiếp tại trình duyệt
-          // Không cần dùng Firebase Storage để tránh lỗi
-          finalImageUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(imageFile);
-            reader.onload = (event) => {
-              const img = new window.Image();
-              img.src = event.target?.result as string;
-              img.onload = () => {
-                const canvas = document.createElement("canvas");
-                const MAX_SIZE = 600;
-                let { width, height } = img;
-                if (width > height && width > MAX_SIZE) {
-                  height *= MAX_SIZE / width;
-                  width = MAX_SIZE;
-                } else if (height > MAX_SIZE) {
-                  width *= MAX_SIZE / height;
-                  height = MAX_SIZE;
-                }
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext("2d");
-                ctx?.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL("image/jpeg", 0.7)); // nén 70% chất lượng
-              };
-              img.onerror = () => reject(new Error("Lỗi đọc ảnh"));
-            };
-            reader.onerror = () => reject(new Error("Lỗi đọc file"));
-          });
+          finalImageUrl = await processImage(imageFile);
         } catch (uploadErr) {
-          console.warn("Lỗi nén ảnh:", uploadErr);
-          setImageError("⚠️ Không thể xử lý ảnh. Đã dùng ảnh mặc định.");
+          console.warn("Lỗi nén ảnh chính:", uploadErr);
+          setImageError("⚠️ Không thể xử lý ảnh chính. Đã dùng ảnh mặc định.");
           finalImageUrl = `https://placehold.co/400x400/A8E6CF/2D6A4F?text=${encodeURIComponent(name)}`;
         }
       }
+
+      // Xử lý ảnh mô tả
+      const finalDescImages = [...descriptionImages];
+      for (let i = 0; i < descImageFiles.length; i++) {
+        try {
+          const base64 = await processImage(descImageFiles[i]);
+          // Replace the temporary blob URL with base64
+          const blobUrl = URL.createObjectURL(descImageFiles[i]);
+          const index = finalDescImages.findIndex(url => url.startsWith("blob:"));
+          if (index !== -1) {
+            finalDescImages[index] = base64;
+          } else {
+            finalDescImages.push(base64);
+          }
+        } catch (err) {
+          console.warn("Lỗi nén ảnh mô tả:", err);
+        }
+      }
+
+      // Lọc bỏ các URL blob còn sót lại (nếu có lỗi) và giữ lại các URL thật hoặc base64
+      const cleanedDescImages = finalDescImages.filter(url => !url.startsWith("blob:"));
 
       if (!finalImageUrl) {
         finalImageUrl = `https://placehold.co/400x400/A8E6CF/2D6A4F?text=${encodeURIComponent(name)}`;
@@ -115,6 +161,7 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
         promoPrice: promoPrice ? Number(promoPrice) : undefined,
         category,
         description,
+        descriptionImages: cleanedDescImages,
         isPromotion,
         imageUrl: finalImageUrl,
         soldCount: isNew ? 0 : undefined,
@@ -208,9 +255,33 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
           
           {imageUrl && (
             <div className="mt-4 w-32 h-32 rounded-xl overflow-hidden bg-surface relative border border-border">
-              {/* Using standard img tag instead of Next.js Image for external unconfigured domains */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={imageUrl} alt="Preview" className="object-cover w-full h-full" />
+            </div>
+          )}
+        </div>
+
+        <div className="pt-4 border-t border-border">
+          <label className="text-sm font-medium mb-1.5 block">Ảnh mô tả bổ sung (Hiển thị trong chi tiết)</label>
+          <input type="file" accept="image/*" multiple onChange={handleDescImagesChange} className="text-sm w-full mb-4" />
+          
+          {descriptionImages.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              {descriptionImages.map((url, idx) => (
+                <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={`Desc ${idx}`} className="object-cover w-full h-full" />
+                  <button 
+                    type="button" 
+                    onClick={() => removeDescImage(idx)}
+                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>

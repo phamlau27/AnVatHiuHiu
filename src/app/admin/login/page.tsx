@@ -36,9 +36,12 @@ export default function AdminLoginPage() {
         className="w-full max-w-sm"
       >
         <div className="text-center mb-8">
-          <span className="text-4xl block mb-2">🔐</span>
-          <h1 className="text-2xl font-extrabold gradient-text">Admin Panel</h1>
-          <p className="text-text-secondary text-sm mt-1">Ăn Vặt Híu Híu</p>
+          <div className="w-20 h-20 rounded-3xl overflow-hidden border-2 border-mint shadow-xl mx-auto mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/avatar.png" alt="Logo" className="w-full h-full object-cover" />
+          </div>
+          <h1 className="text-2xl font-extrabold gradient-text">Doanh Nghiệp Híu Híu</h1>
+          <p className="text-text-secondary text-sm mt-1">Hệ thống quản lý</p>
         </div>
 
         <form onSubmit={handleLogin} className="bg-white rounded-2xl shadow-sm p-6 space-y-4">

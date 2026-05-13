@@ -31,11 +31,11 @@ export default function Header() {
     <header className="sticky top-0 z-50 glass border-b border-white/40">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
         {/* ── Logo ── */}
-        <Link href="/" className="flex items-center gap-1.5 group">
-          {/* Minimal abstract mark */}
-          <div className="relative w-8 h-8 flex items-center justify-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl rotate-6 group-hover:rotate-12 transition-transform duration-300" />
-            <span className="relative text-white font-black text-sm tracking-tighter z-10">HH</span>
+        <Link href="/" className="flex items-center gap-2 group">
+          {/* Brand Logo (Avatar) */}
+          <div className="relative w-9 h-9 flex items-center justify-center rounded-xl overflow-hidden border border-teal-100 shadow-sm group-hover:scale-105 transition-transform duration-300 p-0.5 bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/avatar.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           {/* Text logo with shimmer */}
           <span className="logo-shimmer text-lg font-extrabold tracking-tight">

@@ -11,6 +11,7 @@ export interface Product {
   isPromotion: boolean;
   soldCount: number;
   description?: string;
+  descriptionImages?: string[];
   createdAt: Timestamp;
 }
 

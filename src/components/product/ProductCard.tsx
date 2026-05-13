@@ -104,25 +104,44 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       {/* Description Popup Modal */}
       {product.description && (
         <Modal isOpen={showDesc} onClose={() => setShowDesc(false)} title={product.name}>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xl font-bold text-teal-700">{formatPrice(product.price)}</span>
+          <div className="relative">
+            <div className="space-y-4 pb-4">
+              {/* Horizontal Scroll Images */}
+              {product.descriptionImages && product.descriptionImages.length > 0 && (
+                <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1 hide-scrollbar">
+                  {product.descriptionImages.map((img, idx) => (
+                    <div key={idx} className="flex-none w-[80%] snap-center rounded-2xl overflow-hidden border border-border shadow-sm bg-surface">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img} alt={`${product.name} detail ${idx + 1}`} className="w-full h-auto object-contain aspect-square p-2" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <span className="text-xl font-bold text-teal-700">{formatPrice(product.price)}</span>
+              </div>
+
+              <p className="text-text-primary leading-relaxed whitespace-pre-wrap text-sm md:text-base">
+                {product.description}
+              </p>
             </div>
-            <p className="text-text-primary leading-relaxed whitespace-pre-wrap text-sm md:text-base">
-              {product.description}
-            </p>
-            <button
-              onClick={(e) => {
-                handleAddToCart(e);
-                setShowDesc(false);
-              }}
-              className="w-full py-3 mt-4 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 active:scale-95 text-white font-bold rounded-xl transition-all shadow-md flex justify-center items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              Thêm vào giỏ hàng
-            </button>
+
+            {/* Sticky Action Button */}
+            <div className="sticky bottom-0 bg-white pt-2 pb-1 border-t border-border/50">
+              <button
+                onClick={(e) => {
+                  handleAddToCart(e);
+                  setShowDesc(false);
+                }}
+                className="w-full py-3 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 active:scale-95 text-white font-bold rounded-xl transition-all shadow-md flex justify-center items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                Thêm vào giỏ hàng
+              </button>
+            </div>
           </div>
         </Modal>
       )}

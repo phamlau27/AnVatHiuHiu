@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   title: "Ăn Vặt Híu Híu",
   description:
     "Đặt đồ ăn vặt online nhanh chóng. Khô bò, hạt dinh dưỡng, bánh snack, trái cây sấy, kẹo thạch và nhiều hơn nữa!",
+  icons: {
+    icon: "/favicon-rounded.png?v=5",
+  },
   keywords: [
     "ăn vặt",
     "đồ ăn vặt",
