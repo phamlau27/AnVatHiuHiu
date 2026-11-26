@@ -20,6 +20,115 @@ import {
 import { db } from "./firebase";
 import type { Product, Order, OrderItem } from "@/types";
 
+// ─── In-memory Product Cache ─────────────────────────
+const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
+
+interface PageCacheEntry {
+  products: Product[];
+  lastDoc: DocumentSnapshot | null;
+  hasMore: boolean;
+  timestamp: number;
+}
+
+const pageCache = new Map<string, PageCacheEntry>();
+let allProductsCache: { data: Product[]; timestamp: number } | null = null;
+
+// Fast HTTP/CDN-backed product caches
+interface FastPageResult {
+  products: Product[];
+  hasMore: boolean;
+  total: number;
+}
+const fastPageCache = new Map<string, { data: FastPageResult; timestamp: number }>();
+const fastPageInFlight = new Map<string, Promise<FastPageResult>>();
+let fastAllCache: { data: Product[]; timestamp: number } | null = null;
+let fastAllInFlight: Promise<Product[]> | null = null;
+
+export function invalidateProductCache() {
+  pageCache.clear();
+  allProductsCache = null;
+  fastPageCache.clear();
+  fastPageInFlight.clear();
+  fastAllCache = null;
+  fastAllInFlight = null;
+}
+
+export async function fetchProductsPage(options: {
+  category?: string;
+  offset?: number;
+  limit?: number;
+}): Promise<FastPageResult> {
+  const offset = options.offset ?? 0;
+  const pageLimit = options.limit ?? 12;
+  const key = `${options.category || "__all__"}:${offset}:${pageLimit}`;
+
+  const cached = fastPageCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  const existing = fastPageInFlight.get(key);
+  if (existing) return existing;
+
+  const params = new URLSearchParams({
+    offset: String(offset),
+    limit: String(pageLimit),
+  });
+  if (options.category) params.set("category", options.category);
+
+  const promise = fetch(`/api/products?${params.toString()}`)
+    .then(async (res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return (await res.json()) as FastPageResult;
+    })
+    .then((data) => {
+      fastPageCache.set(key, { data, timestamp: Date.now() });
+      return data;
+    })
+    .finally(() => {
+      fastPageInFlight.delete(key);
+    });
+
+  fastPageInFlight.set(key, promise);
+  return promise;
+}
+
+export function prefetchProductsPage(options: {
+  category?: string;
+  offset: number;
+  limit?: number;
+}) {
+  fetchProductsPage(options).catch(() => {
+    // Ignore background prefetch errors
+  });
+}
+
+export async function fetchAllProductsCached(): Promise<Product[]> {
+  if (fastAllCache && Date.now() - fastAllCache.timestamp < CACHE_TTL_MS) {
+    return fastAllCache.data;
+  }
+  if (fastAllInFlight) return fastAllInFlight;
+
+  fastAllInFlight = fetch("/api/products?all=1")
+    .then(async (res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as { products: Product[] };
+      fastAllCache = { data: json.products, timestamp: Date.now() };
+      return json.products;
+    })
+    .finally(() => {
+      fastAllInFlight = null;
+    });
+
+  return fastAllInFlight;
+}
+
+export function prefetchAllProductsForSearch() {
+  fetchAllProductsCached().catch(() => {
+    // Ignore background prefetch errors
+  });
+}
+
 // ─── Products ────────────────────────────────────────
 
 export async function getProducts(filters?: {
@@ -29,6 +138,22 @@ export async function getProducts(filters?: {
   promoOnly?: boolean;
   limit?: number;
 }): Promise<Product[]> {
+  const hasFilters =
+    filters?.category ||
+    filters?.sort ||
+    filters?.promoOnly ||
+    filters?.limit;
+
+  // Use cached full list when no server-side query filters are specified
+  if (!hasFilters && allProductsCache && Date.now() - allProductsCache.timestamp < CACHE_TTL_MS) {
+    let products = allProductsCache.data;
+    if (filters?.search) {
+      const searchLower = filters.search.toLowerCase();
+      products = products.filter((p) => p.name.toLowerCase().includes(searchLower));
+    }
+    return products;
+  }
+
   let q = query(collection(db, "products"));
 
   if (filters?.category) {
@@ -57,6 +182,10 @@ export async function getProducts(filters?: {
   let products = snapshot.docs.map(
     (doc) => ({ id: doc.id, ...doc.data() } as Product)
   );
+
+  if (!hasFilters) {
+    allProductsCache = { data: products, timestamp: Date.now() };
+  }
 
   // Client-side search (Firestore doesn't support full-text search)
   if (filters?.search) {
@@ -135,44 +264,66 @@ function shuffleArray<T>(array: T[]): T[] {
   return newArray;
 }
 
-// Paginated products with startAfter cursor
+// Paginated products with startAfter cursor and per-category cache
 export async function getProductsPaginated(options: {
   category?: string;
   pageSize?: number;
   lastDoc?: DocumentSnapshot | null;
 }): Promise<{ products: Product[]; lastDoc: DocumentSnapshot | null; hasMore: boolean }> {
-  const PAGE_SIZE = options.pageSize ?? 30;
+  const pageSize = options.pageSize ?? 12;
+  const cacheKey = options.category || "__all__";
 
-  // When filtering by category, fetch ALL matching docs and sort client-side
-  if (options.category) {
-    const q = query(
-      collection(db, "products"),
-      where("category", "==", options.category)
-    );
-    const snapshot = await getDocs(q);
-    let products = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
-    // Sort by createdAt desc client-side
-    products.sort((a, b) => {
-      const aTime = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
-      const bTime = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
-      return bTime - aTime;
-    });
-    return { products, lastDoc: null, hasMore: false };
+  // Return cached first page if available and fresh
+  if (!options.lastDoc) {
+    const cached = pageCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return {
+        products: cached.products,
+        lastDoc: cached.lastDoc,
+        hasMore: cached.hasMore,
+      };
+    }
   }
 
-  // No category filter — fetch all, shuffle, and return a fixed random batch to create a dynamic homepage
-  const qAll = query(collection(db, "products"));
-  const snapshotAll = await getDocs(qAll);
-  const allProducts = snapshotAll.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
-  const shuffled = shuffleArray(allProducts);
+  const baseConstraints = options.category
+    ? [where("category", "==", options.category)]
+    : [orderBy("createdAt", "desc")];
 
-  // Return ALL shuffled items. We disable pagination (hasMore: false) 
-  // since the list is randomized and we want to show all products.
-  return { 
-    products: shuffled, 
-    lastDoc: null, 
-    hasMore: false 
-  };
+  const q = options.lastDoc
+    ? query(
+        collection(db, "products"),
+        ...baseConstraints,
+        startAfter(options.lastDoc),
+        limit(pageSize + 1)
+      )
+    : query(
+        collection(db, "products"),
+        ...baseConstraints,
+        limit(pageSize + 1)
+      );
+
+  const snapshot = await getDocs(q);
+  const hasMore = snapshot.docs.length > pageSize;
+  const docs = hasMore ? snapshot.docs.slice(0, pageSize) : snapshot.docs;
+  const products = docs.map((d) => ({ id: d.id, ...d.data() } as Product));
+  const newLastDoc = docs.length > 0 ? docs[docs.length - 1] : null;
+
+  if (!options.lastDoc) {
+    pageCache.set(cacheKey, {
+      products: !options.category ? shuffleArray(products) : products,
+      lastDoc: newLastDoc,
+      hasMore,
+      timestamp: Date.now(),
+    });
+    const entry = pageCache.get(cacheKey)!;
+    return {
+      products: entry.products,
+      lastDoc: entry.lastDoc,
+      hasMore: entry.hasMore,
+    };
+  }
+
+  return { products, lastDoc: newLastDoc, hasMore };
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
@@ -273,7 +424,9 @@ export async function getOrdersByIds(ids: string[]): Promise<Order[]> {
 }
 
 /**
- * Real-time listener for multiple orders by ID
+ * Real-time listener for multiple orders by ID.
+ * Uses individual doc() listeners (get permission) instead of collection query (list permission),
+ * because Firestore rules allow anonymous users to `get` orders by ID but restrict `list` to admins.
  */
 export function subscribeToOrdersByIds(ids: string[], callback: (orders: Order[]) => void) {
   if (ids.length === 0) {
@@ -281,30 +434,43 @@ export function subscribeToOrdersByIds(ids: string[], callback: (orders: Order[]
     return () => {};
   }
 
-  const chunks: string[][] = [];
-  for (let i = 0; i < ids.length; i += 30) {
-    chunks.push(ids.slice(i, i + 30));
-  }
-
+  const uniqueIds = Array.from(new Set(ids));
+  const orderMap = new Map<string, Order>();
+  const resolvedIds = new Set<string>();
   const unsubscribers: (() => void)[] = [];
-  const resultsByChunk: { [key: number]: Order[] } = {};
 
-  chunks.forEach((chunk, index) => {
-    const q = query(collection(db, "orders"), where(documentId(), "in", chunk));
-    const unsub = onSnapshot(q, (snapshot) => {
-      resultsByChunk[index] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-      
-      const allOrders = Object.values(resultsByChunk).flat().sort((a, b) => {
-        const aTime = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
-        const bTime = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
-        return bTime - aTime;
-      });
-      callback(allOrders);
+  const emit = () => {
+    if (resolvedIds.size < uniqueIds.length) return;
+    const sorted = Array.from(orderMap.values()).sort((a, b) => {
+      const aTime = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
+      const bTime = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
+      return bTime - aTime;
     });
+    callback(sorted);
+  };
+
+  uniqueIds.forEach((id) => {
+    const unsub = onSnapshot(
+      doc(db, "orders", id),
+      (docSnap) => {
+        resolvedIds.add(id);
+        if (docSnap.exists()) {
+          orderMap.set(id, { id: docSnap.id, ...docSnap.data() } as Order);
+        } else {
+          orderMap.delete(id);
+        }
+        emit();
+      },
+      (error) => {
+        console.warn(`Error subscribing to order ${id}:`, error);
+        resolvedIds.add(id);
+        emit();
+      }
+    );
     unsubscribers.push(unsub);
   });
 
-  return () => unsubscribers.forEach(unsub => unsub());
+  return () => unsubscribers.forEach((unsub) => unsub());
 }
 
 // ─── Admin: Products CRUD ────────────────────────────
@@ -316,6 +482,7 @@ export async function createProduct(
     ...data,
     createdAt: serverTimestamp(),
   });
+  invalidateProductCache();
   return docRef.id;
 }
 
@@ -324,10 +491,12 @@ export async function updateProduct(
   data: Partial<Omit<Product, "id" | "createdAt">>
 ): Promise<void> {
   await updateDoc(doc(db, "products", id), data);
+  invalidateProductCache();
 }
 
 export async function deleteProduct(id: string): Promise<void> {
   await deleteDoc(doc(db, "products", id));
+  invalidateProductCache();
 }
 
 export function subscribeToAllProducts(callback: (products: Product[]) => void) {

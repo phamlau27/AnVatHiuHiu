@@ -1,119 +1,105 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import ProductCard from "@/components/product/ProductCard";
 import CategoryBar from "@/components/product/CategoryBar";
 import { ProductCardSkeleton } from "@/components/ui/Skeleton";
-import { subscribeToProducts } from "@/lib/firestore";
-import { Timestamp } from "firebase/firestore";
+import {
+  fetchProductsPage,
+  prefetchProductsPage,
+  prefetchAllProductsForSearch,
+} from "@/lib/firestore";
 import { CATEGORIES } from "@/types";
 import type { Product } from "@/types";
 import Link from "next/link";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 12;
 
 /* ── Antigravity Firework Snacks ───────────────────
-   Snack emojis exploding outwards from center
+   Lightweight snack emojis floating around hero
    ──────────────────────────────────────────────────── */
 const FIREWORK_SNACKS = [
   { emoji: "🍬", endX: "35vw", endY: "-40vh", size: "text-4xl", delay: 0 },
-  { emoji: "🧁", endX: "45vw", endY: "20vh", size: "text-5xl", delay: 0.5 },
-  { emoji: "🫘", endX: "-35vw", endY: "-30vh", size: "text-3xl", delay: 1 },
-  { emoji: "🍪", endX: "-50vw", endY: "15vh", size: "text-6xl", delay: 1.5 },
-  { emoji: "🥜", endX: "15vw", endY: "-50vh", size: "text-4xl", delay: 2 },
-  { emoji: "🍡", endX: "-20vw", endY: "40vh", size: "text-5xl", delay: 2.5 },
-  { emoji: "🍿", endX: "50vw", endY: "-10vh", size: "text-6xl", delay: 0.2 },
-  { emoji: "🍭", endX: "-55vw", endY: "-20vh", size: "text-3xl", delay: 0.7 },
-  { emoji: "🍫", endX: "25vw", endY: "45vh", size: "text-4xl", delay: 1.2 },
-  { emoji: "🍩", endX: "-25vw", endY: "35vh", size: "text-5xl", delay: 1.7 },
-  { emoji: "🍟", endX: "40vw", endY: "-25vh", size: "text-3xl", delay: 2.2 },
-  { emoji: "🥨", endX: "-45vw", endY: "-45vh", size: "text-5xl", delay: 2.7 },
-  { emoji: "🍔", endX: "0vw", endY: "-55vh", size: "text-6xl", delay: 0.9 },
-  { emoji: "🍕", endX: "0vw", endY: "50vh", size: "text-5xl", delay: 1.4 },
+  { emoji: "🧁", endX: "45vw", endY: "20vh", size: "text-5xl", delay: 0.8 },
+  { emoji: "🍪", endX: "-45vw", endY: "15vh", size: "text-5xl", delay: 1.5 },
+  { emoji: "🥜", endX: "15vw", endY: "-45vh", size: "text-4xl", delay: 2.2 },
+  { emoji: "🍿", endX: "-35vw", endY: "-30vh", size: "text-5xl", delay: 0.4 },
+  { emoji: "🍫", endX: "25vw", endY: "40vh", size: "text-4xl", delay: 1.2 },
 ];
 
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string | undefined>();
   const [products, setProducts] = useState<Product[]>([]);
-  const [allFetchedProducts, setAllFetchedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-  const [shuffledOrder, setShuffledOrder] = useState<string[]>([]);
 
   useEffect(() => {
-    setLoading(true);
-    const unsub = subscribeToProducts({ category: activeCategory }, (fetched) => {
-      if (!activeCategory) {
-        // Logic for stable shuffle in "All" view
-        setShuffledOrder(prevOrder => {
-          let newOrder = [...prevOrder];
-          
-          if (newOrder.length === 0) {
-            // Initial shuffle
-            newOrder = fetched.map(p => p.id).sort(() => Math.random() - 0.5);
-          } else {
-            // Maintain existing order, handle additions/deletions
-            const fetchedIds = new Set(fetched.map(p => p.id));
-            const existingIdsInOrder = new Set(newOrder);
-            
-            // 1. Add new products to the top
-            const additions = fetched.filter(p => !existingIdsInOrder.has(p.id)).map(p => p.id);
-            if (additions.length > 0) {
-              newOrder = [...additions, ...newOrder];
-            }
-            
-            // 2. Remove deleted products
-            newOrder = newOrder.filter(id => fetchedIds.has(id));
-          }
+    let cancelled = false;
 
-          const productMap = new Map(fetched.map(p => [p.id, p]));
-          const orderedProducts = newOrder.map(id => productMap.get(id)!).filter(Boolean);
-          
-          setAllFetchedProducts(orderedProducts);
-          setProducts(prev => {
-            const currentLimit = Math.max(prev.length, PAGE_SIZE);
-            return orderedProducts.slice(0, currentLimit);
+    fetchProductsPage({ category: activeCategory, offset: 0, limit: PAGE_SIZE })
+      .then((res) => {
+        if (cancelled) return;
+        setProducts(res.products);
+        setHasMore(res.hasMore);
+
+        // Background prefetch next page and search index for instant interactions
+        if (res.hasMore) {
+          prefetchProductsPage({
+            category: activeCategory,
+            offset: res.products.length,
+            limit: PAGE_SIZE,
           });
-          setHasMore(orderedProducts.length > Math.max(products.length, PAGE_SIZE));
-          
-          return newOrder;
-        });
-      } else {
-        // Simple date sort for category view
-        const sorted = fetched.sort((a, b) => {
-          const aTime = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
-          const bTime = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
-          return bTime - aTime;
-        });
-        setAllFetchedProducts(sorted);
-        setProducts(prev => sorted.slice(0, Math.max(prev.length, PAGE_SIZE)));
-        setHasMore(sorted.length > Math.max(products.length, PAGE_SIZE));
-        setShuffledOrder([]); // Reset shuffle order when switching category
-      }
-      setLoading(false);
-    });
+        }
+        prefetchAllProductsForSearch();
+      })
+      .catch((err) => {
+        if (!cancelled) console.error("Error loading products:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-    return () => unsub();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
   }, [activeCategory]);
 
   const loadMore = async () => {
     if (!hasMore || loadingMore) return;
     setLoadingMore(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 400));
-      const currentLength = products.length;
-      const nextBatch = allFetchedProducts.slice(currentLength, currentLength + PAGE_SIZE);
-      setProducts((prev) => [...prev, ...nextBatch]);
-      setHasMore(currentLength + PAGE_SIZE < allFetchedProducts.length);
+      const nextOffset = products.length;
+      const res = await fetchProductsPage({
+        category: activeCategory,
+        offset: nextOffset,
+        limit: PAGE_SIZE,
+      });
+      setProducts((prev) => {
+        const existingIds = new Set(prev.map((p) => p.id));
+        const uniqueNext = res.products.filter((p) => !existingIds.has(p.id));
+        return [...prev, ...uniqueNext];
+      });
+      setHasMore(res.hasMore);
+
+      if (res.hasMore) {
+        prefetchProductsPage({
+          category: activeCategory,
+          offset: nextOffset + res.products.length,
+          limit: PAGE_SIZE,
+        });
+      }
+    } catch (err) {
+      console.error("Error loading more products:", err);
     } finally {
       setLoadingMore(false);
     }
   };
 
   const handleCategoryChange = (cat?: string) => {
+    if (cat === activeCategory) return;
+    setLoading(true);
     setActiveCategory(cat);
   };
 
@@ -126,13 +112,15 @@ export default function HomePage() {
       {/* ════════════════════════════════════════════════════
           HERO SECTION — Antigravity Mobile-first Web Style
          ════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden grain-overlay min-h-[85vh] flex items-center justify-center">
-        {/* ── Rich gradient bg ── */}
-        <div className="absolute inset-0 bg-gradient-to-b from-teal-50 via-white to-background md:bg-gradient-to-br md:from-teal-50/80 md:via-[#f0fdfa] md:to-white" />
-
-        {/* ── Blur blobs ── */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-teal-300/20 to-cyan-200/15 rounded-full blur-[100px]" />
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-100/30 rounded-full blur-[100px]" />
+      <section className="relative overflow-hidden min-h-[85vh] flex items-center justify-center">
+        {/* ── Rich gradient bg (radial gradients instead of heavy GPU blur filters) ── */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 45%, rgba(94, 234, 212, 0.18) 0%, rgba(240, 253, 250, 0.7) 40%, #FAFBFF 80%)",
+          }}
+        />
 
         {/* ── Antigravity Firework Snacks ── */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 pointer-events-none z-0">
@@ -161,11 +149,11 @@ export default function HomePage() {
         </div>
 
         {/* ── Content ── */}
-        <div className="relative z-10 w-full max-w-4xl mx-auto px-5 text-center mt-8 md:mt-0">
+        <div className="relative z-20 w-full max-w-4xl mx-auto px-5 text-center mt-8 md:mt-0 pb-6">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
           >
             {/* Brand title - Massive and dominant (fixed line-height for diacritics) */}
             <h1 className="text-[clamp(3.5rem,10vw,7rem)] leading-[1.2] pb-2 font-black tracking-tight mb-3">
@@ -180,42 +168,39 @@ export default function HomePage() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-              <motion.div whileTap={{ scale: 0.93 }}>
-                <Link
-                  href="/search"
-                  className="cta-glow inline-flex items-center justify-center gap-2.5 w-[200px] sm:w-auto px-8 py-4 bg-gradient-to-r from-teal-500 via-teal-500 to-teal-600 text-white font-bold text-base rounded-full shadow-xl shadow-teal-500/20 hover:shadow-2xl hover:shadow-teal-500/30 active:shadow-lg transition-all"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                  </svg>
-                  Tìm món ngon
-                </Link>
-              </motion.div>
+              <Link
+                href="/search"
+                className="cta-glow inline-flex items-center justify-center gap-2.5 w-[200px] sm:w-auto px-8 py-4 bg-gradient-to-r from-teal-500 via-teal-500 to-teal-600 text-white font-bold text-base rounded-full shadow-xl shadow-teal-500/20 hover:shadow-2xl hover:shadow-teal-500/30 active:scale-95 transition-all cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                Tìm món ngon
+              </Link>
 
-              <motion.div whileTap={{ scale: 0.93 }}>
-                <button
-                  onClick={() => document.getElementById("product-section")?.scrollIntoView({ behavior: "smooth" })}
-                  className="inline-flex items-center justify-center gap-2 w-[200px] sm:w-auto px-8 py-4 bg-white/80 backdrop-blur-sm text-teal-700 font-semibold text-base rounded-full border border-teal-200/80 hover:bg-white hover:border-teal-300 active:bg-teal-50 transition-all shadow-sm"
-                >
-                  Xem sản phẩm
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-              </motion.div>
+              <button
+                type="button"
+                onClick={() => document.getElementById("product-section")?.scrollIntoView({ behavior: "smooth" })}
+                className="inline-flex items-center justify-center gap-2 w-[200px] sm:w-auto px-8 py-4 bg-white/90 text-teal-700 font-semibold text-base rounded-full border border-teal-200/80 hover:bg-white hover:border-teal-300 active:scale-95 active:bg-teal-50 transition-all shadow-sm cursor-pointer"
+              >
+                Xem sản phẩm
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
             </div>
           </motion.div>
         </div>
 
         {/* Bottom fade into content */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent z-10" />
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent z-10 pointer-events-none" />
       </section>
 
 
       {/* ════════════════════════════════════════════════════
           PRODUCTS SECTION
          ════════════════════════════════════════════════════ */}
-      <div id="product-section" className="max-w-5xl mx-auto px-4 space-y-6 py-6">
+      <div id="product-section" className="scroll-mt-16 max-w-5xl mx-auto px-4 space-y-6 py-6">
         {/* Category Bar */}
         <section>
           <CategoryBar activeCategory={activeCategory} onSelect={handleCategoryChange} />
@@ -247,20 +232,11 @@ export default function HomePage() {
             </div>
           ) : (
             <>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeCategory ?? "all"}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4"
-                >
-                  {products.map((product, i) => (
-                    <ProductCard key={product.id} product={product} index={i} />
-                  ))}
-                </motion.div>
-              </AnimatePresence>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
+                {products.map((product, i) => (
+                  <ProductCard key={product.id} product={product} index={i} />
+                ))}
+              </div>
 
               {hasMore && (
                 <div className="flex justify-center mt-8">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useCartStore } from "@/stores/cartStore";
@@ -12,9 +12,13 @@ interface ProductCardProps {
   index?: number;
 }
 
-export default function ProductCard({ product, index = 0 }: ProductCardProps) {
+const ProductCard = memo(function ProductCard({ product, index = 0 }: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem);
   const [showDesc, setShowDesc] = useState(false);
+  const [extraImages, setExtraImages] = useState<string[] | null>(
+    product.descriptionImages ?? null
+  );
+  const [loadingImages, setLoadingImages] = useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -32,19 +36,34 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const handleImageClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (product.description) {
-      setShowDesc(true);
+    if (!product.description && !product.hasDescriptionImages && !extraImages?.length) {
+      return;
+    }
+    setShowDesc(true);
+    if (product.hasDescriptionImages && extraImages === null && !loadingImages) {
+      setLoadingImages(true);
+      fetch(`/api/products/${product.id}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && Array.isArray(data.descriptionImages)) {
+            setExtraImages(data.descriptionImages);
+          } else {
+            setExtraImages([]);
+          }
+        })
+        .catch(() => setExtraImages([]))
+        .finally(() => setLoadingImages(false));
     }
   };
 
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: Math.min(index * 0.04, 0.6), duration: 0.35, ease: "easeOut" }}
-        whileHover={{ y: -4, transition: { duration: 0.2 } }}
-        className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300 group relative border border-border/40 flex flex-col h-full cursor-pointer"
+        transition={{ delay: Math.min(index * 0.015, 0.12), duration: 0.2, ease: "easeOut" }}
+        whileHover={{ y: -3, transition: { duration: 0.15 } }}
+        className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-200 group relative border border-border/40 flex flex-col h-full cursor-pointer"
         onClick={handleImageClick}
       >
         {/* Promo Badge */}
@@ -102,14 +121,17 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       </motion.div>
 
       {/* Description Popup Modal */}
-      {product.description && (
+      {(product.description || product.hasDescriptionImages || (extraImages && extraImages.length > 0)) && (
         <Modal isOpen={showDesc} onClose={() => setShowDesc(false)} title={product.name}>
           <div className="relative">
             <div className="space-y-4 pb-4">
               {/* Horizontal Scroll Images */}
-              {product.descriptionImages && product.descriptionImages.length > 0 && (
+              {loadingImages && (
+                <div className="w-full aspect-square rounded-2xl skeleton" />
+              )}
+              {!loadingImages && extraImages && extraImages.length > 0 && (
                 <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1 hide-scrollbar">
-                  {product.descriptionImages.map((img, idx) => (
+                  {extraImages.map((img, idx) => (
                     <div key={idx} className="flex-none w-[80%] snap-center rounded-2xl overflow-hidden border border-border shadow-sm bg-surface">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={img} alt={`${product.name} detail ${idx + 1}`} className="w-full h-auto object-contain aspect-square p-2" />
@@ -122,9 +144,11 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
                 <span className="text-xl font-bold text-teal-700">{formatPrice(product.price)}</span>
               </div>
 
-              <p className="text-text-primary leading-relaxed whitespace-pre-wrap text-sm md:text-base">
-                {product.description}
-              </p>
+              {product.description && (
+                <p className="text-text-primary leading-relaxed whitespace-pre-wrap text-sm md:text-base">
+                  {product.description}
+                </p>
+              )}
             </div>
 
             {/* Sticky Action Button */}
@@ -147,4 +171,6 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       )}
     </>
   );
-}
+});
+
+export default ProductCard;

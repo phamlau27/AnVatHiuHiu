@@ -23,37 +23,40 @@ export default function CartDrawer() {
   const allSelected = items.length > 0 && items.every(i => i.selected);
 
   const [invalidProductIds, setInvalidProductIds] = useState<string[]>([]);
-  const [isValidating, setIsValidating] = useState(false);
+  const [validatedKey, setValidatedKey] = useState<string | null>(null);
+  const currentKey = isOpen && items.length > 0 ? items.map((i) => i.productId).join(",") : null;
+  const isValidating = currentKey !== null && validatedKey !== currentKey;
 
   useEffect(() => {
-    if (isOpen && items.length > 0) {
-      setIsValidating(true);
-      const productIds = items.map(i => i.productId);
-      
-      const unsub = subscribeToProductsByIds(productIds, (validProducts) => {
-        const validIds = new Set(validProducts.map(p => p.id));
-        const invalidIds = productIds.filter(id => !validIds.has(id));
-        
-        // Update local store with fresh data (price, name, etc.)
-        useCartStore.getState().syncItems(validProducts);
-        
-        setInvalidProductIds(invalidIds);
-        setIsValidating(false);
-        
-        // Auto unselect invalid items
-        if (invalidIds.length > 0) {
-          const { toggleSelectItem } = useCartStore.getState();
-          items.forEach(item => {
-            if (item.selected && invalidIds.includes(item.productId)) {
-              toggleSelectItem(item.productId);
-            }
-          });
-        }
-      });
+    if (!isOpen || items.length === 0) return;
 
-      return () => unsub();
-    }
-  }, [isOpen, items.length]); // Intentionally not depending on full items array to avoid infinite loop on toggle
+    const productIds = items.map((i) => i.productId);
+    const key = productIds.join(",");
+
+    const unsub = subscribeToProductsByIds(productIds, (validProducts) => {
+      const validIds = new Set(validProducts.map((p) => p.id));
+      const invalidIds = productIds.filter((id) => !validIds.has(id));
+
+      // Update local store with fresh data (price, name, etc.)
+      useCartStore.getState().syncItems(validProducts);
+
+      setInvalidProductIds(invalidIds);
+      setValidatedKey(key);
+
+      // Auto unselect invalid items
+      if (invalidIds.length > 0) {
+        const { items: latestItems, toggleSelectItem } = useCartStore.getState();
+        latestItems.forEach((item) => {
+          if (item.selected && invalidIds.includes(item.productId)) {
+            toggleSelectItem(item.productId);
+          }
+        });
+      }
+    });
+
+    return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, items.length]);
 
   if (!mounted) return null;
 
@@ -66,8 +69,9 @@ export default function CartDrawer() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             onClick={closeCart}
-            className="fixed inset-0 bg-black/40 z-[70] backdrop-blur-sm"
+            className="fixed inset-0 bg-black/45 z-[70]"
           />
 
           {/* Drawer */}

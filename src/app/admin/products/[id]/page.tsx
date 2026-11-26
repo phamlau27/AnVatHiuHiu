@@ -177,9 +177,10 @@ export default function ProductEditPage({ params }: { params: Promise<{ id: stri
         showToast("✅ Đã cập nhật!", "success");
       }
       router.push("/admin/products");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      showToast(`❌ Có lỗi: ${err?.message || "Kiểm tra console"}`, "error");
+      const message = err instanceof Error ? err.message : "Kiểm tra console";
+      showToast(`❌ Có lỗi: ${message}`, "error");
     } finally {
       setLoading(false);
     }

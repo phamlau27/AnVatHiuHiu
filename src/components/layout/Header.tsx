@@ -17,15 +17,14 @@ export default function Header() {
   const [activeOrderCount, setActiveOrderCount] = useState(0);
 
   useEffect(() => {
-    if (!mounted || orderIds.length === 0) {
-      setActiveOrderCount(0);
-      return;
-    }
+    if (!mounted || orderIds.length === 0) return;
     const unsub = subscribeToOrdersByIds(orderIds, (orders) => {
       setActiveOrderCount(orders.filter(o => o.status === "new" || o.status === "processing").length);
     });
     return () => unsub();
   }, [mounted, orderIds]);
+
+  const displayedOrderCount = mounted && orderIds.length > 0 ? activeOrderCount : 0;
 
   return (
     <header className="sticky top-0 z-50 glass border-b border-white/40">
@@ -65,14 +64,14 @@ export default function Header() {
             <svg className="w-[22px] h-[22px] text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            {mounted && activeOrderCount > 0 && (
+            {displayedOrderCount > 0 && (
               <motion.span
-                key={activeOrderCount}
+                key={displayedOrderCount}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 className="absolute top-0.5 right-0.5 bg-gradient-to-br from-orange-400 to-orange-600 text-white text-[9px] font-bold w-[18px] h-[18px] flex items-center justify-center rounded-full shadow-sm"
               >
-                {activeOrderCount > 99 ? "99+" : activeOrderCount}
+                {displayedOrderCount > 99 ? "99+" : displayedOrderCount}
               </motion.span>
             )}
           </Link>

@@ -30,10 +30,7 @@ export default function OrdersPage() {
   const [cancelling, setCancelling] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!mounted || orderIds.length === 0) {
-      setLoading(false);
-      return;
-    }
+    if (!mounted || orderIds.length === 0) return;
 
     const unsub = subscribeToOrdersByIds(orderIds, (fetched) => {
       setOrders(fetched);
@@ -42,6 +39,8 @@ export default function OrdersPage() {
 
     return () => unsub();
   }, [mounted, orderIds]);
+
+  const isLoading = !mounted || (orderIds.length > 0 && loading);
 
   async function handleCancel(orderId: string) {
     if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
@@ -57,7 +56,7 @@ export default function OrdersPage() {
     }
   }
 
-  if (!mounted || loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-mint border-t-transparent rounded-full" />

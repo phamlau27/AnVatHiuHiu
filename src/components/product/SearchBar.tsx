@@ -37,7 +37,7 @@ export default function SearchBar({
         setSuggestions([]);
         setShowSuggestions(false);
       }
-    }, 300);
+    }, 150);
     return () => clearTimeout(timer);
   }, [query, products, onSearch]);
 

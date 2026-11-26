@@ -19,10 +19,7 @@ export default function BottomNav() {
 
   // Fetch active order count (new + processing) real-time
   useEffect(() => {
-    if (!mounted || orderIds.length === 0) {
-      setActiveOrderCount(0);
-      return;
-    }
+    if (!mounted || orderIds.length === 0) return;
     const unsub = subscribeToOrdersByIds(orderIds, (orders) => {
       const count = orders.filter(
         (o) => o.status === "new" || o.status === "processing"
@@ -31,6 +28,8 @@ export default function BottomNav() {
     });
     return () => unsub();
   }, [mounted, orderIds]);
+
+  const displayedOrderCount = mounted && orderIds.length > 0 ? activeOrderCount : 0;
 
   // Hide bottom nav on admin pages
   if (pathname.startsWith("/admin")) return null;
@@ -93,9 +92,9 @@ export default function BottomNav() {
             <svg className="w-5 h-5" fill={pathname.startsWith("/orders") ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={pathname.startsWith("/orders") ? 0 : 1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
             </svg>
-            {mounted && activeOrderCount > 0 && (
+            {displayedOrderCount > 0 && (
               <span className="absolute -top-1.5 -right-2 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
-                {activeOrderCount}
+                {displayedOrderCount}
               </span>
             )}
           </div>

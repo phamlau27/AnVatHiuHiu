@@ -12,7 +12,8 @@ export interface Product {
   soldCount: number;
   description?: string;
   descriptionImages?: string[];
-  createdAt: Timestamp;
+  hasDescriptionImages?: boolean;
+  createdAt: Timestamp | { seconds: number; nanoseconds: number } | number;
 }
 
 // ─── Order ───────────────────────────────────────────
