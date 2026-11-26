@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Ăn Vặt Híu Híu",
+  title: "Ăn Vặt Hai Híu",
   description:
     "Đặt đồ ăn vặt online nhanh chóng. Khô bò, hạt dinh dưỡng, bánh snack, trái cây sấy, kẹo thạch và nhiều hơn nữa!",
   icons: {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     "TP.HCM",
   ],
   openGraph: {
-    title: "Ăn Vặt Híu Híu",
+    title: "Ăn Vặt Hai Híu",
     description: "Đặt đồ ăn vặt online nhanh chóng tại TP.HCM",
     type: "website",
   },

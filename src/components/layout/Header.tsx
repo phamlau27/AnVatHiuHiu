@@ -38,7 +38,7 @@ export default function Header() {
           </div>
           {/* Text logo with shimmer */}
           <span className="logo-shimmer text-lg font-extrabold tracking-tight">
-            Ăn Vặt Híu Híu
+            Ăn Vặt Hai Híu
           </span>
         </Link>
 

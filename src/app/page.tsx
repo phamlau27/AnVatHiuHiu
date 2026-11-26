@@ -158,7 +158,7 @@ export default function HomePage() {
             {/* Brand title - Massive and dominant (fixed line-height for diacritics) */}
             <h1 className="text-[clamp(3.5rem,10vw,7rem)] leading-[1.2] pb-2 font-black tracking-tight mb-3">
               <span className="hero-brand block">Ăn Vặt</span>
-              <span className="hero-brand-accent block">Híu Híu</span>
+              <span className="hero-brand-accent block">Hai Híu</span>
             </h1>
 
             {/* Tagline — clean, secondary */}

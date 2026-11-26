@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🍿 Ăn Vặt Híu Híu
+# 🍿 Ăn Vặt Hai Híu
 
 **Nền tảng thương mại điện tử chuyên cung cấp đồ ăn vặt trực tuyến — *Ăn là ghiền, đặt là có ngay.***
 
@@ -16,7 +16,7 @@
 
 ## ✨ Tổng quan
 
-**Ăn Vặt Híu Híu** là ứng dụng web bán hàng trực tuyến được thiết kế theo chuẩn **Mobile-First**, tối ưu trải nghiệm mua sắm nhanh gọn trên cả điện thoại và máy tính, tích hợp hệ thống quản trị đơn hàng và sản phẩm theo thời gian thực.
+**Ăn Vặt Hai Híu** là ứng dụng web bán hàng trực tuyến được thiết kế theo chuẩn **Mobile-First**, tối ưu trải nghiệm mua sắm nhanh gọn trên cả điện thoại và máy tính, tích hợp hệ thống quản trị đơn hàng và sản phẩm theo thời gian thực.
 
 🌐 **Trải nghiệm trực tiếp:** [an-vat-hiu-hiu.vercel.app](https://an-vat-hiu-hiu.vercel.app)
 
@@ -61,5 +61,5 @@ Mở [http://localhost:3000](http://localhost:3000) trên trình duyệt để x
 ---
 
 <div align="center">
-  © 2026 <strong>Ăn Vặt Híu Híu</strong>
+  © 2026 <strong>Ăn Vặt Hai Híu</strong>
 </div>

@@ -68,7 +68,7 @@ export default function AdminLayout({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/avatar.png" alt="Avatar" className="w-full h-full object-contain" />
             </div>
-            <span className="font-extrabold gradient-text text-lg">Ăn Vặt Híu Híu</span>
+            <span className="font-extrabold gradient-text text-lg">Ăn Vặt Hai Híu</span>
           </Link>
         </div>
 
@@ -122,7 +122,7 @@ export default function AdminLayout({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/avatar.png" alt="Avatar" className="w-full h-full object-contain" />
           </div>
-          <span className="font-extrabold gradient-text text-sm">Ăn Vặt Híu Híu</span>
+          <span className="font-extrabold gradient-text text-sm">Ăn Vặt Hai Híu</span>
         </Link>
         <div className="flex items-center gap-1">
           {navItems.map((item) => {

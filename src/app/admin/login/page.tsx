@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/avatar.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-2xl font-extrabold gradient-text">Doanh Nghiệp Híu Híu</h1>
+          <h1 className="text-2xl font-extrabold gradient-text">Doanh Nghiệp Hai Híu</h1>
           <p className="text-text-secondary text-sm mt-1">Hệ thống quản lý</p>
         </div>
 
